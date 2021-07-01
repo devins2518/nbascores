@@ -94,7 +94,7 @@ struct Name {
     first_name_last_name: String,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct Stats {
     times_tied: String,
@@ -139,7 +139,7 @@ impl PrettyPrintGame for BoxScore {
             v_linescore[1],
             v_linescore[2],
             v_linescore[3],
-            stats.unwrap().get_total_v()
+            stats.unwrap_or(&Stats::default()).get_total_v()
         );
         println!(
             "{}    {: >2} {: >2} {: >2} {: >2} {: >3}",
@@ -148,7 +148,7 @@ impl PrettyPrintGame for BoxScore {
             h_linescore[1],
             h_linescore[2],
             h_linescore[3],
-            stats.unwrap().get_total_h()
+            stats.unwrap_or(&Stats::default()).get_total_h()
         )
         //}
     }
