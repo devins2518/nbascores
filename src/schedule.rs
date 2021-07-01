@@ -1,4 +1,6 @@
+use crate::boxscore::BoxScore;
 use crate::utils::*;
+use reqwest::blocking::Client;
 use serde_derive::Deserialize;
 
 // TODO: remove allocations using custom de impl
@@ -8,6 +10,15 @@ pub struct Games {
 }
 
 impl Games {
+    pub fn new(client: &Client) -> Result<Self, Box<dyn std::error::Error>> {
+        let schedules = client
+            .get("http://data.nba.com/prod/v1/2020/schedule.json")
+            .send()?
+            .text()?;
+
+        Ok(serde_json::from_str::<Games>(&schedules)?)
+    }
+
     // Likely not useful, NBA has games scheduled at the end of the season which aren't that
     // useful
     #[allow(unused)]
@@ -15,11 +26,16 @@ impl Games {
         println!("{:#?}", self.league.standard.last().unwrap());
     }
 
-    pub fn print_today(&self) {
+    pub fn print_today(&self, client: &Client) {
+        self.get_today().iter().for_each(|x| x.print_game(client));
+    }
+
+    fn get_today(&self) -> Vec<Game> {
         let vec = self.league.standard.as_slice();
         vec.iter()
             .filter(|&x| x.start_date_eastern == today())
-            .for_each(|x| println!("{:#?}", x));
+            .map(|x| x.clone())
+            .collect()
     }
 }
 
@@ -28,7 +44,7 @@ struct League {
     standard: Vec<Game>,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 struct Game {
     game_id: String,
@@ -46,80 +62,21 @@ struct Game {
     is_buzzer_beater: bool,
     period: Period,
     playoffs: Option<Playoffs>,
-    h_team: HTeam,
-    v_team: VTeam,
+    h_team: Team,
+    v_team: Team,
     watch: Watch,
 }
 
-#[derive(Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
-struct Period {
-    current: usize,
-    #[serde(rename(deserialize = "type"))]
-    type_: usize,
-    max_regular: usize,
-}
-
-#[derive(Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
-struct Playoffs {
-    round_num: String,
-    conf_name: String,
-    series_id: String,
-    series_summary_text: String,
-    is_series_completed: bool,
-    game_num_in_series: String,
-    is_if_necessary: bool,
-    v_team: VTeam,
-    h_team: HTeam,
-}
-
-#[derive(Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
-struct VTeam {
-    seed_num: Option<String>,
-    series_win: Option<String>,
-    is_series_winner: Option<bool>,
-}
-
-#[derive(Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
-struct HTeam {
-    seed_num: Option<String>,
-    series_win: Option<String>,
-    is_series_winner: Option<bool>,
-}
-
-#[derive(Deserialize, Debug)]
-struct Nugget {
-    text: String,
-}
-
-#[derive(Deserialize, Debug)]
-struct Watch {
-    broadcast: Broadcast,
-}
-
-#[derive(Deserialize, Debug)]
-struct Broadcast {
-    video: Video,
-}
-
-#[derive(Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
-struct Video {
-    regional_blackout_codes: String,
-    is_league_pass: bool,
-    is_national_blackout: bool,
-    #[serde(rename(deserialize = "isTNTOT"))]
-    is_tntot: bool,
-    can_purchase: bool,
-    #[serde(rename(deserialize = "isVR"))]
-    is_vr: bool,
-    #[serde(rename(deserialize = "isNextVR"))]
-    is_next_vr: bool,
-    #[serde(rename(deserialize = "isNBAOnTNTVR"))]
-    is_nba_on_tnt_vr: bool,
-    is_magic_leap: bool,
-    is_oculus_venues: bool,
+impl PrettyPrintGame for Game {
+    // TODO
+    fn print_game(&self, client: &Client) {
+        let score = BoxScore::new(
+            client,
+            self.start_date_eastern.clone(),
+            self.game_id.clone(),
+        )
+        .unwrap();
+        println!("{:#?}", score);
+        unimplemented!()
+    }
 }
