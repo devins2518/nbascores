@@ -5,19 +5,18 @@ use serde_derive::Deserialize;
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct BoxScore {
-    basic_game_data: BasicGameData,
-    previous_matchup: PreviousMatchup,
-    stats: Stats,
+    pub basic_game_data: BasicGameData,
+    pub previous_matchup: PreviousMatchup,
+    pub stats: Option<Stats>,
 }
 
 impl BoxScore {
     pub fn new(
         client: &reqwest::blocking::Client,
         game_date: String,
-        game_id: String,
+        game_id: &str,
     ) -> Result<Self, Box<dyn std::error::Error>> {
-        println!("game_date: {}, game_id {}", game_date, game_id);
-        let schedules = client
+        let boxscore = client
             .get(format!(
                 "http://data.nba.com/prod/v1/{}/{}_boxscore.json",
                 game_date, game_id
@@ -25,27 +24,27 @@ impl BoxScore {
             .send()?
             .text()?;
 
-        Ok(serde_json::from_str::<BoxScore>(&schedules)?)
+        Ok(serde_json::from_str::<BoxScore>(&boxscore)?)
     }
 }
 
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
-struct BasicGameData {
+pub struct BasicGameData {
     season_stage_id: usize,
     season_year: String,
     league_name: String,
     game_id: String,
     //arena:
-    is_game_activated: bool,
+    pub is_game_activated: bool,
     status_num: usize,
     extended_status_num: usize,
-    start_time_eastern: String,
+    pub start_time_eastern: String,
     #[serde(rename(deserialize = "startTimeUTC"))]
     start_time_utc: String,
     #[serde(rename(deserialize = "endTimeUTC"))]
     end_time_utc: Option<String>,
-    start_date_eastern: String,
+    pub start_date_eastern: String,
     home_start_date: String,
     home_start_time: String,
     visitor_start_date: String,
@@ -63,18 +62,18 @@ struct BasicGameData {
     is_start_time_tbd: bool,
     is_neutral_venue: bool,
     game_duration: GameDuration,
-    tags: Vec<String>,
-    playoffs: Playoffs,
+    tags: Option<Vec<String>>,
+    playoffs: Option<Playoffs>,
     period: Period,
-    v_team: Team,
-    h_team: Team,
+    pub v_team: Team,
+    pub h_team: Team,
     //watch,
     officials: Officials,
 }
 
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
-struct PreviousMatchup {
+pub struct PreviousMatchup {
     game_id: String,
     game_date: String,
 }
@@ -93,10 +92,37 @@ struct Name {
 
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
-struct Stats {
+pub struct Stats {
     times_tied: String,
     lead_changes: String,
     v_team: Team,
     h_team: Team,
     active_players: Vec<Players>,
+}
+
+impl PrettyPrintGame for BoxScore {
+    fn print_game(&self) {
+        let bgd = &self.basic_game_data;
+        let stats = self.stats.as_ref();
+        // TODO Remove
+        println!(" T      1  2  3  4  T");
+        println!(
+            "{}    {: >2} {: >2} {: >2} {: >2} {: >3}",
+            bgd.v_team.tri_code.as_ref().unwrap(),
+            bgd.v_team.linescore.as_ref().unwrap().get(0).unwrap().score,
+            bgd.v_team.linescore.as_ref().unwrap().get(1).unwrap().score,
+            bgd.v_team.linescore.as_ref().unwrap().get(2).unwrap().score,
+            bgd.v_team.linescore.as_ref().unwrap().get(3).unwrap().score,
+            stats.unwrap().v_team.totals.as_ref().unwrap().points
+        );
+        println!(
+            "{}    {: >2} {: >2} {: >2} {: >2} {: >3}",
+            bgd.h_team.tri_code.as_ref().unwrap(),
+            bgd.h_team.linescore.as_ref().unwrap().get(0).unwrap().score,
+            bgd.h_team.linescore.as_ref().unwrap().get(1).unwrap().score,
+            bgd.h_team.linescore.as_ref().unwrap().get(2).unwrap().score,
+            bgd.h_team.linescore.as_ref().unwrap().get(3).unwrap().score,
+            stats.unwrap().h_team.totals.as_ref().unwrap().points
+        );
+    }
 }

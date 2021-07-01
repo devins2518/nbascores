@@ -1,5 +1,4 @@
 use chrono::prelude::*;
-use reqwest::blocking::Client;
 use serde_derive::Deserialize;
 
 pub fn today() -> String {
@@ -8,7 +7,7 @@ pub fn today() -> String {
 }
 
 pub trait PrettyPrintGame {
-    fn print_game(&self, client: &Client);
+    fn print_game(&self);
 }
 
 #[derive(Deserialize, Debug, Clone)]
@@ -47,19 +46,19 @@ pub struct Team {
     series_win: Option<String>,
     is_series_winner: Option<bool>,
     team_id: Option<String>,
-    tri_code: Option<String>,
+    pub tri_code: Option<String>,
     win: Option<String>,
     loss: Option<String>,
     series_loss: Option<String>,
-    score: Option<String>,
-    linescore: Option<Vec<Score>>,
+    pub score: Option<String>,
+    pub linescore: Option<Vec<Score>>,
     fast_break_points: Option<String>,
     points_in_paint: Option<String>,
     biggest_lead: Option<String>,
     second_chance_points: Option<String>,
     points_off_turnovers: Option<String>,
     longest_run: Option<String>,
-    totals: Option<Totals>,
+    pub totals: Option<Totals>,
     leaders: Option<Leaders>,
 }
 
@@ -111,8 +110,8 @@ pub struct Playoffs {
 
 #[derive(Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
-struct Totals {
-    points: String,
+pub struct Totals {
+    pub points: String,
     fgm: String,
     fga: String,
     fgp: String,
@@ -217,6 +216,6 @@ struct SortKey {
 
 #[derive(Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
-struct Score {
-    score: String,
+pub struct Score {
+    pub score: String,
 }

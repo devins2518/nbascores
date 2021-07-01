@@ -1,4 +1,3 @@
-use crate::boxscore::BoxScore;
 use crate::utils::*;
 use reqwest::blocking::Client;
 use serde_derive::Deserialize;
@@ -26,8 +25,8 @@ impl Games {
         println!("{:#?}", self.league.standard.last().unwrap());
     }
 
-    pub fn print_today(&self, client: &Client) {
-        self.get_today().iter().for_each(|x| x.print_game(client));
+    pub fn print_today(&self) {
+        self.get_today().iter().for_each(|x| x.print_game());
     }
 
     fn get_today(&self) -> Vec<Game> {
@@ -35,6 +34,14 @@ impl Games {
         vec.iter()
             .filter(|&x| x.start_date_eastern == today())
             .map(|x| x.clone())
+            .collect()
+    }
+
+    pub fn get_date_game_id(&self, game_id: String) -> Vec<String> {
+        let vec = self.league.standard.as_slice();
+        vec.iter()
+            .filter(|&x| x.start_date_eastern == game_id)
+            .map(|x| x.game_id.clone())
             .collect()
     }
 }
@@ -69,14 +76,5 @@ struct Game {
 
 impl PrettyPrintGame for Game {
     // TODO
-    fn print_game(&self, client: &Client) {
-        let score = BoxScore::new(
-            client,
-            self.start_date_eastern.clone(),
-            self.game_id.clone(),
-        )
-        .unwrap();
-        println!("{:#?}", score);
-        unimplemented!()
-    }
+    fn print_game(&self) {}
 }
