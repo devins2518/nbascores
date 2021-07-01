@@ -39,7 +39,7 @@ struct Video {
     is_oculus_venues: bool,
 }
 
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Deserialize, Debug, Default, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct Team {
     seed_num: Option<String>,
@@ -60,6 +60,17 @@ pub struct Team {
     longest_run: Option<String>,
     pub totals: Option<Totals>,
     leaders: Option<Leaders>,
+}
+
+impl Team {
+    pub fn get_linescore(&self) -> Vec<String> {
+        // TODO
+        //self.linescore.as_ref().unwrap().get(0).unwrap().score;
+        //self.linescore.as_ref().unwrap().get(1).unwrap().score;
+        //self.linescore.as_ref().unwrap().get(2).unwrap().score;
+        //self.linescore.as_ref().unwrap().get(3).unwrap().score;
+        vec![String::new(); 4]
+    }
 }
 
 #[derive(Deserialize, Debug)]
@@ -87,7 +98,7 @@ pub struct Nugget {
 #[derive(Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct Period {
-    current: usize,
+    pub current: usize,
     r#type: usize,
     max_regular: usize,
     is_halftime: Option<bool>,

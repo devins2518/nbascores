@@ -16,6 +16,10 @@ impl BoxScore {
         game_date: String,
         game_id: &str,
     ) -> Result<Self, Box<dyn std::error::Error>> {
+        println!(
+            "http://data.nba.com/prod/v1/{}/{}_boxscore.json",
+            game_date, game_id
+        );
         let boxscore = client
             .get(format!(
                 "http://data.nba.com/prod/v1/{}/{}_boxscore.json",
@@ -100,29 +104,52 @@ pub struct Stats {
     active_players: Vec<Players>,
 }
 
+impl Stats {
+    pub fn get_total_v(&self) -> String {
+        if let Some(total) = &self.v_team.totals {
+            total.points.clone()
+        } else {
+            String::from("0")
+        }
+    }
+    pub fn get_total_h(&self) -> String {
+        if let Some(total) = &self.h_team.totals {
+            total.points.clone()
+        } else {
+            String::from("0")
+        }
+    }
+}
+
 impl PrettyPrintGame for BoxScore {
     fn print_game(&self) {
         let bgd = &self.basic_game_data;
         let stats = self.stats.as_ref();
-        // TODO Remove
+        let v_linescore = bgd.v_team.get_linescore();
+        let h_linescore = bgd.h_team.get_linescore();
+
         println!(" T      1  2  3  4  T");
+        //if bgd.period.current == 0 {
+        //} else {
+        // TODO Remove
         println!(
             "{}    {: >2} {: >2} {: >2} {: >2} {: >3}",
             bgd.v_team.tri_code.as_ref().unwrap(),
-            bgd.v_team.linescore.as_ref().unwrap().get(0).unwrap().score,
-            bgd.v_team.linescore.as_ref().unwrap().get(1).unwrap().score,
-            bgd.v_team.linescore.as_ref().unwrap().get(2).unwrap().score,
-            bgd.v_team.linescore.as_ref().unwrap().get(3).unwrap().score,
-            stats.unwrap().v_team.totals.as_ref().unwrap().points
+            v_linescore[0],
+            v_linescore[1],
+            v_linescore[2],
+            v_linescore[3],
+            stats.unwrap().get_total_v()
         );
         println!(
             "{}    {: >2} {: >2} {: >2} {: >2} {: >3}",
             bgd.h_team.tri_code.as_ref().unwrap(),
-            bgd.h_team.linescore.as_ref().unwrap().get(0).unwrap().score,
-            bgd.h_team.linescore.as_ref().unwrap().get(1).unwrap().score,
-            bgd.h_team.linescore.as_ref().unwrap().get(2).unwrap().score,
-            bgd.h_team.linescore.as_ref().unwrap().get(3).unwrap().score,
-            stats.unwrap().h_team.totals.as_ref().unwrap().points
-        );
+            h_linescore[0],
+            h_linescore[1],
+            h_linescore[2],
+            h_linescore[3],
+            stats.unwrap().get_total_h()
+        )
+        //}
     }
 }
