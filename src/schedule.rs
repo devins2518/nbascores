@@ -11,14 +11,14 @@ pub struct Games<'lf> {
 
 impl<'lf> Games<'lf> {
     pub fn new(client: &Client) -> Result<Self, Box<dyn std::error::Error>> {
-        let schedules = Box::leak(Box::new(
+        let schedules = Box::leak::<'lf>(Box::new(
             client
                 .get("http://data.nba.com/prod/v1/2020/schedule.json")
                 .send()?
                 .text()?,
         ));
 
-        Ok(serde_json::from_str::<Games>(&*schedules)?)
+        Ok(serde_json::from_str::<Games>(schedules)?)
     }
 
     // Likely not useful, NBA has games scheduled at the end of the season which aren't that

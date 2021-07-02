@@ -21,7 +21,7 @@ impl<'lf> BoxScore<'lf> {
             "http://data.nba.com/prod/v1/{}/{}_boxscore.json",
             game_date, game_id
         );
-        let boxscore = Box::leak(Box::new(
+        let boxscore = Box::leak::<'lf>(Box::new(
             client
                 .get(format!(
                     "http://data.nba.com/prod/v1/{}/{}_boxscore.json",
@@ -31,7 +31,7 @@ impl<'lf> BoxScore<'lf> {
                 .text()?,
         ));
 
-        Ok(serde_json::from_str::<BoxScore<'lf>>(&*boxscore)?)
+        Ok(serde_json::from_str::<BoxScore<'lf>>(boxscore)?)
     }
 }
 
@@ -132,7 +132,7 @@ impl<'lf> Stats<'lf> {
 impl<'lf> PrettyPrintGame for BoxScore<'lf> {
     fn print_game(&self) {
         let bgd = &self.basic_game_data;
-        let stats = if let Some(ref stats) = self.stats {
+        let stats = if let Some(stats) = &self.stats {
             stats.clone()
         } else {
             Stats {
