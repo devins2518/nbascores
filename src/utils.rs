@@ -1,6 +1,5 @@
 use chrono::prelude::*;
 use serde_derive::Deserialize;
-use std::ops::Deref;
 
 pub fn today() -> String {
     let local: DateTime<Local> = Local::now();
@@ -65,19 +64,22 @@ pub struct Team {
 
 impl Team {
     pub fn get_linescore(&self) -> Vec<String> {
-        // TODO
-        let score = &self.linescore;
-        let vec = vec![String::from("0"); 4];
-
-        if let Some(scores) = score {
-            vec.clone_from_slice(
-                &scores
-                    .iter()
-                    .map(|x| x.deref())
-                    .collect::<Vec<_>>()
-                    .as_slice(),
-            );
+        // TODO jesus christ
+        let mut vec = Vec::with_capacity(4);
+        let scores = self.linescore.as_ref().unwrap();
+        if let Some(x) = scores.get(0) {
+            vec.push(x.score.clone());
         }
+        if let Some(x) = scores.get(1) {
+            vec.push(x.score.clone());
+        }
+        if let Some(x) = scores.get(2) {
+            vec.push(x.score.clone());
+        }
+        if let Some(x) = scores.get(3) {
+            vec.push(x.score.clone());
+        }
+
         vec
     }
 }
@@ -238,12 +240,4 @@ struct SortKey {
 #[serde(rename_all = "camelCase")]
 pub struct Score {
     pub score: String,
-}
-
-impl std::ops::Deref for Score {
-    type Target = String;
-
-    fn deref(&self) -> &Self::Target {
-        &self.score
-    }
 }

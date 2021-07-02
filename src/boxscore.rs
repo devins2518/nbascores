@@ -131,7 +131,7 @@ impl PrettyPrintGame for BoxScore {
         println!(" T      1  2  3  4  T");
         //if bgd.period.current == 0 {
         //} else {
-        // TODO Remove
+        // TODO crashes if run for todays game that hasnt started
         println!(
             "{}    {: >2} {: >2} {: >2} {: >2} {: >3}",
             bgd.v_team.tri_code.as_ref().unwrap(),
