@@ -4,18 +4,21 @@ use serde_derive::Deserialize;
 
 // TODO: remove allocations using custom de impl
 #[derive(Deserialize, Debug)]
-pub struct Games {
-    league: League,
+#[serde(bound(deserialize = "'de: 'lf"))]
+pub struct Games<'lf> {
+    league: League<'lf>,
 }
 
-impl Games {
+impl<'lf> Games<'lf> {
     pub fn new(client: &Client) -> Result<Self, Box<dyn std::error::Error>> {
-        let schedules = client
-            .get("http://data.nba.com/prod/v1/2020/schedule.json")
-            .send()?
-            .text()?;
+        let schedules = Box::leak(Box::new(
+            client
+                .get("http://data.nba.com/prod/v1/2020/schedule.json")
+                .send()?
+                .text()?,
+        ));
 
-        Ok(serde_json::from_str::<Games>(&schedules)?)
+        Ok(serde_json::from_str::<Games>(&*schedules)?)
     }
 
     // Likely not useful, NBA has games scheduled at the end of the season which aren't that
@@ -29,15 +32,14 @@ impl Games {
         self.get_today().iter().for_each(|x| x.print_game());
     }
 
-    fn get_today(&self) -> Vec<Game> {
+    fn get_today(&'lf self) -> Vec<&'lf Game<'lf>> {
         let vec = self.league.standard.as_slice();
         vec.iter()
             .filter(|&x| x.start_date_eastern == today())
-            .map(|x| x.clone())
             .collect()
     }
 
-    pub fn get_date_game_id(&self, game_id: String) -> Vec<String> {
+    pub fn get_date_game_id(&self, game_id: String) -> Vec<&str> {
         let vec = self.league.standard.as_slice();
         vec.iter()
             .filter(|&x| x.start_date_eastern == game_id)
@@ -47,34 +49,36 @@ impl Games {
 }
 
 #[derive(Deserialize, Debug)]
-struct League {
-    standard: Vec<Game>,
+#[serde(bound(deserialize = "'de: 'lf"))]
+struct League<'lf> {
+    standard: Vec<Game<'lf>>,
 }
 
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
-struct Game {
-    game_id: String,
+#[serde(bound(deserialize = "'de: 'lf"))]
+struct Game<'lf> {
+    game_id: &'lf str,
     season_stage_id: usize,
-    game_url_code: String,
+    game_url_code: &'lf str,
     status_num: usize,
     extended_status_num: usize,
     #[serde(rename(deserialize = "isStartTimeTBD"))]
     is_start_time_tbd: bool,
     #[serde(rename(deserialize = "startTimeUTC"))]
-    start_time_utc: String,
-    start_date_eastern: String,
+    start_time_utc: &'lf str,
+    start_date_eastern: &'lf str,
     is_neutral_venue: bool,
-    start_time_eastern: String,
+    start_time_eastern: &'lf str,
     is_buzzer_beater: bool,
     period: Period,
-    playoffs: Option<Playoffs>,
-    h_team: Team,
-    v_team: Team,
-    watch: Watch,
+    playoffs: Option<Playoffs<'lf>>,
+    h_team: Team<'lf>,
+    v_team: Team<'lf>,
+    watch: Watch<'lf>,
 }
 
-impl PrettyPrintGame for Game {
+impl<'lf> PrettyPrintGame for Game<'lf> {
     // TODO
     fn print_game(&self) {}
 }

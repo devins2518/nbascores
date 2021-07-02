@@ -10,20 +10,23 @@ pub trait PrettyPrintGame {
     fn print_game(&self);
 }
 
-#[derive(Deserialize, Debug, Clone)]
-pub struct Watch {
-    broadcast: Broadcast,
+#[derive(Deserialize, Debug)]
+#[serde(bound(deserialize = "'de: 'lf"))]
+pub struct Watch<'lf> {
+    broadcast: Broadcast<'lf>,
 }
 
-#[derive(Deserialize, Debug, Clone)]
-struct Broadcast {
-    video: Video,
+#[derive(Deserialize, Debug)]
+#[serde(bound(deserialize = "'de: 'lf"))]
+struct Broadcast<'lf> {
+    video: Video<'lf>,
 }
 
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
-struct Video {
-    regional_blackout_codes: String,
+#[serde(bound(deserialize = "'de: 'lf"))]
+struct Video<'lf> {
+    regional_blackout_codes: &'lf str,
     is_league_pass: bool,
     is_national_blackout: bool,
     #[serde(rename(deserialize = "isTNTOT"))]
@@ -41,29 +44,30 @@ struct Video {
 
 #[derive(Deserialize, Debug, Default, Clone)]
 #[serde(rename_all = "camelCase")]
-pub struct Team {
-    seed_num: Option<String>,
-    series_win: Option<String>,
+#[serde(bound(deserialize = "'de: 'lf"))]
+pub struct Team<'lf> {
+    seed_num: Option<&'lf str>,
+    series_win: Option<&'lf str>,
     is_series_winner: Option<bool>,
-    team_id: Option<String>,
-    pub tri_code: Option<String>,
-    win: Option<String>,
-    loss: Option<String>,
-    series_loss: Option<String>,
-    pub score: Option<String>,
-    pub linescore: Option<Vec<Score>>,
-    fast_break_points: Option<String>,
-    points_in_paint: Option<String>,
-    biggest_lead: Option<String>,
-    second_chance_points: Option<String>,
-    points_off_turnovers: Option<String>,
-    longest_run: Option<String>,
-    pub totals: Option<Totals>,
-    leaders: Option<Leaders>,
+    team_id: Option<&'lf str>,
+    pub tri_code: Option<&'lf str>,
+    win: Option<&'lf str>,
+    loss: Option<&'lf str>,
+    series_loss: Option<&'lf str>,
+    pub score: Option<&'lf str>,
+    pub linescore: Option<Vec<Score<'lf>>>,
+    fast_break_points: Option<&'lf str>,
+    points_in_paint: Option<&'lf str>,
+    biggest_lead: Option<&'lf str>,
+    second_chance_points: Option<&'lf str>,
+    points_off_turnovers: Option<&'lf str>,
+    longest_run: Option<&'lf str>,
+    pub totals: Option<Totals<'lf>>,
+    leaders: Option<Leaders<'lf>>,
 }
 
-impl Team {
-    pub fn get_linescore(&self) -> Vec<String> {
+impl<'lf> Team<'lf> {
+    pub fn get_linescore(&self) -> Vec<&'lf str> {
         // TODO jesus christ
         let mut vec = Vec::with_capacity(4);
         let scores = self.linescore.as_ref().unwrap();
@@ -86,27 +90,30 @@ impl Team {
 
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
-pub struct Tickets {
-    mobile_app: String,
-    desktop_web: String,
-    mobile_web: String,
-    leag_game_info: String,
-    leag_tix: String,
+#[serde(bound(deserialize = "'de: 'lf"))]
+pub struct Tickets<'lf> {
+    mobile_app: &'lf str,
+    desktop_web: &'lf str,
+    mobile_web: &'lf str,
+    leag_game_info: &'lf str,
+    leag_tix: &'lf str,
 }
 
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
-pub struct GameDuration {
-    hours: String,
-    minutes: String,
+#[serde(bound(deserialize = "'de: 'lf"))]
+pub struct GameDuration<'lf> {
+    hours: &'lf str,
+    minutes: &'lf str,
 }
 
 #[derive(Deserialize, Debug)]
-pub struct Nugget {
-    text: String,
+#[serde(bound(deserialize = "'de: 'lf"))]
+pub struct Nugget<'lf> {
+    text: &'lf str,
 }
 
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct Period {
     pub current: usize,
@@ -116,96 +123,101 @@ pub struct Period {
     is_end_of_period: Option<bool>,
 }
 
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
-pub struct Playoffs {
-    round_num: String,
-    conf_name: String,
-    series_id: String,
-    series_summary_text: String,
+#[serde(bound(deserialize = "'de: 'lf"))]
+pub struct Playoffs<'lf> {
+    round_num: &'lf str,
+    conf_name: &'lf str,
+    series_id: &'lf str,
+    series_summary_text: &'lf str,
     is_series_completed: bool,
-    game_num_in_series: String,
+    game_num_in_series: &'lf str,
     is_if_necessary: bool,
-    v_team: Team,
-    h_team: Team,
+    v_team: Team<'lf>,
+    h_team: Team<'lf>,
 }
 
 #[derive(Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
-pub struct Totals {
-    pub points: String,
-    fgm: String,
-    fga: String,
-    fgp: String,
-    ftm: String,
-    fta: String,
-    ftp: String,
-    tpm: String,
-    tpa: String,
-    tpp: String,
-    off_reb: String,
-    def_reb: String,
-    tot_reb: String,
-    assists: String,
-    p_fouls: String,
-    steals: String,
-    turnovers: String,
-    blocks: String,
-    plus_minus: String,
-    min: String,
-    short_timeout_remaining: Option<String>,
-    full_timeout_remaining: Option<String>,
-    team_fouls: Option<String>,
+#[serde(bound(deserialize = "'de: 'lf"))]
+pub struct Totals<'lf> {
+    pub points: &'lf str,
+    fgm: &'lf str,
+    fga: &'lf str,
+    fgp: &'lf str,
+    ftm: &'lf str,
+    fta: &'lf str,
+    ftp: &'lf str,
+    tpm: &'lf str,
+    tpa: &'lf str,
+    tpp: &'lf str,
+    off_reb: &'lf str,
+    def_reb: &'lf str,
+    tot_reb: &'lf str,
+    assists: &'lf str,
+    p_fouls: &'lf str,
+    steals: &'lf str,
+    turnovers: &'lf str,
+    blocks: &'lf str,
+    plus_minus: &'lf str,
+    min: &'lf str,
+    short_timeout_remaining: Option<&'lf str>,
+    full_timeout_remaining: Option<&'lf str>,
+    team_fouls: Option<&'lf str>,
 }
 
 #[derive(Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
-struct Leaders {
-    points: Stat,
-    rebounds: Stat,
-    assists: Stat,
+#[serde(bound(deserialize = "'de: 'lf"))]
+struct Leaders<'lf> {
+    points: Stat<'lf>,
+    rebounds: Stat<'lf>,
+    assists: Stat<'lf>,
 }
 
 #[derive(Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
-struct Stat {
-    value: String,
-    players: Vec<Players>,
+#[serde(bound(deserialize = "'de: 'lf"))]
+struct Stat<'lf> {
+    value: &'lf str,
+    players: Vec<Players<'lf>>,
 }
 
 #[derive(Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
-pub struct Players {
-    person_id: String,
-    first_name: String,
-    last_name: String,
-    jersey: Option<String>,
-    team_id: Option<String>,
+#[serde(bound(deserialize = "'de: 'lf"))]
+pub struct Players<'lf> {
+    person_id: &'lf str,
+    first_name: &'lf str,
+    last_name: &'lf str,
+    jersey: Option<&'lf str>,
+    team_id: Option<&'lf str>,
     is_on_court: Option<bool>,
-    points: Option<String>,
-    pos: Option<String>,
-    position_full: Option<String>,
-    player_code: Option<String>,
-    min: Option<String>,
-    fgm: Option<String>,
-    fga: Option<String>,
-    fgp: Option<String>,
-    ftm: Option<String>,
-    fta: Option<String>,
-    ftp: Option<String>,
-    tpm: Option<String>,
-    tpa: Option<String>,
-    tpp: Option<String>,
-    off_reb: Option<String>,
-    def_reb: Option<String>,
-    tot_reb: Option<String>,
-    assists: Option<String>,
-    p_fouls: Option<String>,
-    steals: Option<String>,
-    turnovers: Option<String>,
-    blocks: Option<String>,
-    plus_minus: Option<String>,
-    dnp: Option<String>,
+    points: Option<&'lf str>,
+    pos: Option<&'lf str>,
+    position_full: Option<&'lf str>,
+    player_code: Option<&'lf str>,
+    min: Option<&'lf str>,
+    fgm: Option<&'lf str>,
+    fga: Option<&'lf str>,
+    fgp: Option<&'lf str>,
+    ftm: Option<&'lf str>,
+    fta: Option<&'lf str>,
+    ftp: Option<&'lf str>,
+    tpm: Option<&'lf str>,
+    tpa: Option<&'lf str>,
+    tpp: Option<&'lf str>,
+    off_reb: Option<&'lf str>,
+    def_reb: Option<&'lf str>,
+    tot_reb: Option<&'lf str>,
+    assists: Option<&'lf str>,
+    p_fouls: Option<&'lf str>,
+    steals: Option<&'lf str>,
+    turnovers: Option<&'lf str>,
+    blocks: Option<&'lf str>,
+    plus_minus: Option<&'lf str>,
+    dnp: Option<&'lf str>,
     sort_key: Option<SortKey>,
 }
 
@@ -238,6 +250,7 @@ struct SortKey {
 
 #[derive(Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
-pub struct Score {
-    pub score: String,
+#[serde(bound(deserialize = "'de: 'lf"))]
+pub struct Score<'lf> {
+    pub score: &'lf str,
 }
