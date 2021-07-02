@@ -14,7 +14,7 @@ pub struct BoxScore<'lf> {
 impl<'lf> BoxScore<'lf> {
     pub fn new(
         client: &reqwest::blocking::Client,
-        game_date: String,
+        game_date: &str,
         game_id: &str,
     ) -> Result<Self, Box<dyn std::error::Error>> {
         println!(

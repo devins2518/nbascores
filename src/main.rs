@@ -67,10 +67,10 @@ fn main() {
 
     match matches.subcommand_name() {
         Some("get") => {
-            let games = sc.get_date_game_id(date.clone());
-            games.iter().for_each(|x| {
-                let bs = boxscore::BoxScore::new(&client, date.clone(), &x)
-                    .expect("Could not parse json!");
+            let games = sc.get_date_game_id(&*date);
+            games.iter().for_each(|&x| {
+                let bs =
+                    boxscore::BoxScore::new(&client, &*date, x).expect("Could not parse json!");
                 bs.print_game();
             });
         }

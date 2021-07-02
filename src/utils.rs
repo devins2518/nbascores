@@ -72,16 +72,16 @@ impl<'lf> Team<'lf> {
         let mut vec = Vec::with_capacity(4);
         let scores = self.linescore.as_ref().unwrap();
         if let Some(x) = scores.get(0) {
-            vec.push(x.score.clone());
+            vec.push(x.score);
         }
         if let Some(x) = scores.get(1) {
-            vec.push(x.score.clone());
+            vec.push(x.score);
         }
         if let Some(x) = scores.get(2) {
-            vec.push(x.score.clone());
+            vec.push(x.score);
         }
         if let Some(x) = scores.get(3) {
-            vec.push(x.score.clone());
+            vec.push(x.score);
         }
 
         vec

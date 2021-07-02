@@ -39,11 +39,11 @@ impl<'lf> Games<'lf> {
             .collect()
     }
 
-    pub fn get_date_game_id(&self, game_id: String) -> Vec<&str> {
+    pub fn get_date_game_id(&self, game_id: &str) -> Vec<&str> {
         let vec = self.league.standard.as_slice();
         vec.iter()
             .filter(|&x| x.start_date_eastern == game_id)
-            .map(|x| x.game_id.clone())
+            .map(|x| x.game_id)
             .collect()
     }
 }
