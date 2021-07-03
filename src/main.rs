@@ -12,49 +12,24 @@ fn main() {
         .version(VERSION)
         .author("Devin S. <drsingh2518@icloud.com>")
         .about("Get NBA scores")
-        .subcommand(
-            SubCommand::with_name("get")
-                .about("print the most up to date data")
-                .setting(AppSettings::ArgRequiredElseHelp)
-                .arg(
-                    Arg::with_name("game")
-                        .conflicts_with("boxscore")
-                        .required_unless("boxscore")
-                        .help("Print the most up to date information about a game"),
-                )
-                .arg(
-                    Arg::with_name("boxscore")
-                        .conflicts_with("game")
-                        .required_unless("game")
-                        .help("Print the most up to date boxscore of a game"),
-                ),
-        )
-        .subcommand(
-            SubCommand::with_name("watch")
-                .about("watch the most up to date game info as it updates")
-                .setting(AppSettings::ArgRequiredElseHelp)
-                .arg(
-                    Arg::with_name("game")
-                        .conflicts_with("boxscore")
-                        .required_unless("boxscore")
-                        .help("Watch the game score"),
-                )
-                .arg(
-                    Arg::with_name("boxscore")
-                        .conflicts_with("game")
-                        .required_unless("game")
-                        .help("Watch the boxscore"),
-                ),
-        )
-        .arg(
+        .args(&[
+            Arg::with_name("action")
+                .required(true)
+                .takes_value(true)
+                .possible_values(&["get", "watch"])
+                .help("Choose whether you want to get the info and exit, or watch updated info."),
+            Arg::with_name("type")
+                .required(true)
+                .takes_value(true)
+                .possible_values(&["boxscore", "game"])
+                .help("Choose whether you retreive overall game info or just the boxscore"),
             Arg::with_name("date")
                 .short("d")
+                .long("date")
                 .takes_value(true)
-                .required(false)
-                .global(true)
-                .help("Date of the game in yyyy-mm-dd format, defaults to today"),
-        )
-        .setting(AppSettings::SubcommandRequiredElseHelp)
+                .help("Choose a date in yyyymmdd format. Defaults to today"),
+        ])
+        .setting(AppSettings::ArgRequiredElseHelp)
         .setting(AppSettings::ColoredHelp)
         .get_matches();
 
@@ -65,7 +40,7 @@ fn main() {
         .unwrap_or(&utils::today())
         .to_string();
 
-    match matches.subcommand_name() {
+    match matches.value_of("action") {
         Some("get") => {
             let games = sc.get_date_game_id(&*date);
             games.iter().for_each(|&x| {
