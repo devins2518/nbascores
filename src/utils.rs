@@ -73,15 +73,23 @@ impl<'lf> Team<'lf> {
         let scores = self.linescore.as_ref().unwrap();
         if let Some(x) = scores.get(0) {
             vec.push(x.score);
+        } else {
+            vec.push("0")
         }
         if let Some(x) = scores.get(1) {
             vec.push(x.score);
+        } else {
+            vec.push("0")
         }
         if let Some(x) = scores.get(2) {
             vec.push(x.score);
+        } else {
+            vec.push("0")
         }
         if let Some(x) = scores.get(3) {
             vec.push(x.score);
+        } else {
+            vec.push("0")
         }
 
         vec

@@ -146,9 +146,15 @@ impl<'lf> PrettyPrintGame for BoxScore<'lf> {
         let v_linescore = bgd.v_team.get_linescore();
         let h_linescore = bgd.h_team.get_linescore();
 
+        if bgd.period.current == 0 {
+            println!(
+                "{}@{} has not begun yet.",
+                bgd.v_team.tri_code.as_ref().unwrap(),
+                bgd.h_team.tri_code.as_ref().unwrap(),
+            );
+        }
+
         println!(" T      1  2  3  4  T");
-        //if bgd.period.current == 0 {
-        //} else {
         // TODO crashes if run for todays game that hasnt started
         println!(
             "{}    {: >2} {: >2} {: >2} {: >2} {: >3}",
@@ -168,6 +174,5 @@ impl<'lf> PrettyPrintGame for BoxScore<'lf> {
             h_linescore[3],
             stats.get_total_h()
         )
-        //}
     }
 }

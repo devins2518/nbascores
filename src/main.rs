@@ -2,7 +2,7 @@ mod boxscore;
 mod schedule;
 mod today_scoreboard;
 mod utils;
-use clap::{App, AppSettings, Arg, SubCommand};
+use clap::{App, AppSettings, Arg};
 use utils::PrettyPrintGame;
 
 static VERSION: &str = "0.1";
