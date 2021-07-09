@@ -33,6 +33,52 @@ impl<'lf> BoxScore<'lf> {
 
         Ok(serde_json::from_str::<BoxScore<'lf>>(boxscore)?)
     }
+
+    fn print_game(&self) {
+        let bgd = &self.basic_game_data;
+        let stats = if let Some(stats) = &self.stats {
+            stats.clone()
+        } else {
+            Stats {
+                times_tied: "0",
+                lead_changes: "0",
+                v_team: Team::default(),
+                h_team: Team::default(),
+                active_players: Vec::new(),
+            }
+        };
+        let v_linescore = bgd.v_team.get_linescore();
+        let h_linescore = bgd.h_team.get_linescore();
+
+        if bgd.period.current == 0 {
+            println!(
+                "{}@{} has not begun yet.",
+                bgd.v_team.tri_code.as_ref().unwrap(),
+                bgd.h_team.tri_code.as_ref().unwrap(),
+            );
+        }
+
+        println!(" T      1  2  3  4  T");
+        // TODO crashes if run for todays game that hasnt started
+        println!(
+            "{}    {: >2} {: >2} {: >2} {: >2} {: >3}",
+            bgd.v_team.tri_code.as_ref().unwrap(),
+            v_linescore[0],
+            v_linescore[1],
+            v_linescore[2],
+            v_linescore[3],
+            stats.get_total_v()
+        );
+        println!(
+            "{}    {: >2} {: >2} {: >2} {: >2} {: >3}",
+            bgd.h_team.tri_code.as_ref().unwrap(),
+            h_linescore[0],
+            h_linescore[1],
+            h_linescore[2],
+            h_linescore[3],
+            stats.get_total_h()
+        )
+    }
 }
 
 #[derive(Deserialize, Debug)]
@@ -126,53 +172,5 @@ impl<'lf> Stats<'lf> {
         } else {
             "0"
         }
-    }
-}
-
-impl<'lf> PrettyPrintGame for BoxScore<'lf> {
-    fn print_game(&self) {
-        let bgd = &self.basic_game_data;
-        let stats = if let Some(stats) = &self.stats {
-            stats.clone()
-        } else {
-            Stats {
-                times_tied: "0",
-                lead_changes: "0",
-                v_team: Team::default(),
-                h_team: Team::default(),
-                active_players: Vec::new(),
-            }
-        };
-        let v_linescore = bgd.v_team.get_linescore();
-        let h_linescore = bgd.h_team.get_linescore();
-
-        if bgd.period.current == 0 {
-            println!(
-                "{}@{} has not begun yet.",
-                bgd.v_team.tri_code.as_ref().unwrap(),
-                bgd.h_team.tri_code.as_ref().unwrap(),
-            );
-        }
-
-        println!(" T      1  2  3  4  T");
-        // TODO crashes if run for todays game that hasnt started
-        println!(
-            "{}    {: >2} {: >2} {: >2} {: >2} {: >3}",
-            bgd.v_team.tri_code.as_ref().unwrap(),
-            v_linescore[0],
-            v_linescore[1],
-            v_linescore[2],
-            v_linescore[3],
-            stats.get_total_v()
-        );
-        println!(
-            "{}    {: >2} {: >2} {: >2} {: >2} {: >3}",
-            bgd.h_team.tri_code.as_ref().unwrap(),
-            h_linescore[0],
-            h_linescore[1],
-            h_linescore[2],
-            h_linescore[3],
-            stats.get_total_h()
-        )
     }
 }

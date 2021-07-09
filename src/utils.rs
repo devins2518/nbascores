@@ -1,13 +1,10 @@
 use chrono::prelude::*;
 use serde_derive::Deserialize;
+use tui::widgets::ListState;
 
 pub fn today() -> String {
     let local: DateTime<Local> = Local::now();
     local.format("%Y%m%d").to_string()
-}
-
-pub trait PrettyPrintGame {
-    fn print_game(&self);
 }
 
 #[derive(Deserialize, Debug)]
@@ -261,4 +258,116 @@ struct SortKey {
 #[serde(bound(deserialize = "'de: 'lf"))]
 pub struct Score<'lf> {
     pub score: &'lf str,
+}
+
+#[derive(Clone)]
+pub struct RandomSignal {
+    value: u64,
+}
+
+impl RandomSignal {
+    pub fn new() -> RandomSignal {
+        RandomSignal { value: 50 }
+    }
+}
+
+impl Iterator for RandomSignal {
+    type Item = u64;
+    fn next(&mut self) -> Option<u64> {
+        Some(50)
+    }
+}
+
+#[derive(Clone)]
+pub struct SinSignal {
+    x: f64,
+    interval: f64,
+    period: f64,
+    scale: f64,
+}
+
+impl SinSignal {
+    pub fn new(interval: f64, period: f64, scale: f64) -> SinSignal {
+        SinSignal {
+            x: 0.0,
+            interval,
+            period,
+            scale,
+        }
+    }
+}
+
+impl Iterator for SinSignal {
+    type Item = (f64, f64);
+    fn next(&mut self) -> Option<Self::Item> {
+        let point = (self.x, (self.x * 1.0 / self.period).sin() * self.scale);
+        self.x += self.interval;
+        Some(point)
+    }
+}
+
+pub const TAB_NUM: usize = 2;
+
+pub struct TabsState<'a> {
+    pub titles: [&'a str; TAB_NUM],
+    pub index: usize,
+}
+
+impl<'a> TabsState<'a> {
+    pub fn new(titles: [&'a str; TAB_NUM]) -> TabsState {
+        TabsState { titles, index: 0 }
+    }
+    pub fn next(&mut self) {
+        self.index = (self.index + 1) % TAB_NUM;
+    }
+
+    pub fn previous(&mut self) {
+        if self.index > 0 {
+            self.index -= 1;
+        } else {
+            self.index = self.titles.len() - 1;
+        }
+    }
+}
+
+pub struct StatefulList<T> {
+    pub state: ListState,
+    pub items: Vec<T>,
+}
+
+impl<T> StatefulList<T> {
+    pub fn with_items(items: Vec<T>) -> StatefulList<T> {
+        StatefulList {
+            state: ListState::default(),
+            items,
+        }
+    }
+
+    pub fn next(&mut self) {
+        let i = match self.state.selected() {
+            Some(i) => {
+                if i >= self.items.len() - 1 {
+                    0
+                } else {
+                    i + 1
+                }
+            }
+            None => 0,
+        };
+        self.state.select(Some(i));
+    }
+
+    pub fn previous(&mut self) {
+        let i = match self.state.selected() {
+            Some(i) => {
+                if i == 0 {
+                    self.items.len() - 1
+                } else {
+                    i - 1
+                }
+            }
+            None => 0,
+        };
+        self.state.select(Some(i));
+    }
 }

@@ -10,7 +10,7 @@ pub struct Games<'lf> {
 }
 
 impl<'lf> Games<'lf> {
-    pub fn new(client: &Client) -> Result<Self, Box<dyn std::error::Error>> {
+    pub fn new(client: &Client) -> Result<Self, reqwest::Error> {
         let schedules = Box::leak::<'lf>(Box::new(
             client
                 .get("http://data.nba.com/prod/v1/2020/schedule.json")
@@ -18,7 +18,8 @@ impl<'lf> Games<'lf> {
                 .text()?,
         ));
 
-        Ok(serde_json::from_str::<Games>(schedules)?)
+        // SAFETY: should not fail if json was properly fetched
+        Ok(serde_json::from_str::<Games>(schedules).unwrap())
     }
 
     // Likely not useful, NBA has games scheduled at the end of the season which aren't that
@@ -39,13 +40,16 @@ impl<'lf> Games<'lf> {
             .collect()
     }
 
-    pub fn get_date_game_id(&self, game_id: &str) -> Vec<&str> {
+    pub fn get_date_game_id(&self, date: &str) -> Vec<&str> {
         let vec = self.league.standard.as_slice();
         vec.iter()
-            .filter(|&x| x.start_date_eastern == game_id)
+            .filter(|&x| x.start_date_eastern == date)
             .map(|x| x.game_id)
             .collect()
     }
+}
+impl<'lf> Game<'lf> {
+    fn print_game(&self) {}
 }
 
 #[derive(Deserialize, Debug)]
@@ -76,9 +80,4 @@ struct Game<'lf> {
     h_team: Team<'lf>,
     v_team: Team<'lf>,
     watch: Watch<'lf>,
-}
-
-impl<'lf> PrettyPrintGame for Game<'lf> {
-    // TODO
-    fn print_game(&self) {}
 }

@@ -1,57 +1,150 @@
+mod app;
 mod boxscore;
 mod schedule;
 mod today_scoreboard;
+mod ui;
 mod utils;
 use clap::{App, AppSettings, Arg};
-use utils::PrettyPrintGame;
+use crossterm::{
+    event::{self, DisableMouseCapture, EnableMouseCapture, Event as CEvent, KeyCode},
+    execute,
+    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
+};
+use std::{
+    error::Error,
+    io::stdout,
+    sync::mpsc,
+    thread,
+    time::{Duration, Instant},
+};
+use tui::{backend::CrosstermBackend, Terminal};
 
 static VERSION: &str = "0.1";
 
-fn main() {
+enum Event<I, J> {
+    Input(I),
+    MouseEvent(J),
+    Tick,
+}
+
+fn main() -> Result<(), Box<dyn Error>> {
     let matches = App::new("NBAScores")
         .version(VERSION)
         .author("Devin S. <drsingh2518@icloud.com>")
         .about("Get NBA scores")
         .args(&[
-            Arg::with_name("action")
-                .required(true)
+            Arg::with_name("enhanced_graphics")
+                .long("enchanced_graphics")
+                .short("e")
                 .takes_value(true)
-                .possible_values(&["get", "watch"])
-                .help("Choose whether you want to get the info and exit, or watch updated info."),
-            Arg::with_name("type")
-                .required(true)
+                .default_value("true")
+                .possible_values(&["true", "false"])
+                .help("Use nerd font glyphs."),
+            Arg::with_name("tick_rate")
+                .long("tick_rate")
+                .short("t")
                 .takes_value(true)
-                .possible_values(&["boxscore", "game"])
-                .help("Choose whether you retreive overall game info or just the boxscore"),
+                .default_value("250")
+                .help("Tick rate of the ui."),
             Arg::with_name("date")
                 .short("d")
                 .long("date")
                 .takes_value(true)
                 .help("Choose a date in yyyymmdd format. Defaults to today"),
         ])
-        .setting(AppSettings::ArgRequiredElseHelp)
         .setting(AppSettings::ColoredHelp)
         .get_matches();
 
+    let enhanced_graphics = matches
+        .value_of("enhanced_graphics")
+        .unwrap()
+        .parse()
+        .unwrap();
+
     let client = reqwest::blocking::Client::new();
-    let sc = schedule::Games::new(&client).unwrap();
+    let sc = schedule::Games::new(&client)
+        .expect("Error occured fetching `http://data.nba.com/prod/v1/2020/schedule.json`.");
     let date = matches
         .value_of("date")
         .unwrap_or(&utils::today())
         .to_string();
+    let games = sc.get_date_game_id(&date);
+    let boxscore = boxscore::BoxScore::new(&client, &date, games[0]);
 
-    match matches.value_of("action") {
-        Some("get") => {
-            let games = sc.get_date_game_id(&*date);
-            games.iter().for_each(|&x| {
-                let bs =
-                    boxscore::BoxScore::new(&client, &*date, x).expect("Could not parse json!");
-                bs.print_game();
-            });
+    enable_raw_mode()?;
+
+    let mut stdout = stdout();
+    execute!(stdout, EnterAlternateScreen, EnableMouseCapture)?;
+
+    let backend = CrosstermBackend::new(stdout);
+
+    let mut terminal = Terminal::new(backend)?;
+
+    // Setup input handling
+    let (tx, rx) = mpsc::channel();
+
+    let tick_rate = Duration::from_millis(matches.value_of("tick_rate").unwrap().parse().unwrap());
+    thread::spawn(move || {
+        let mut last_tick = Instant::now();
+        loop {
+            // poll for tick rate duration, if no events, sent tick event.
+            let timeout = tick_rate
+                .checked_sub(last_tick.elapsed())
+                .unwrap_or_else(|| Duration::from_secs(0));
+            if event::poll(timeout).unwrap() {
+                match event::read() {
+                    Ok(CEvent::Key(key)) => tx.send(Event::Input(key)).unwrap(),
+                    Ok(CEvent::Mouse(mouse_event)) => {
+                        tx.send(Event::MouseEvent(mouse_event)).unwrap()
+                    }
+                    _ => (),
+                }
+            }
+
+            if last_tick.elapsed() >= tick_rate {
+                tx.send(Event::Tick).unwrap();
+                last_tick = Instant::now();
+            }
         }
-        Some("watch") => {
-            println!("watch")
+    });
+
+    let mut app = app::App::new("NBAScores", enhanced_graphics);
+
+    terminal.clear()?;
+
+    loop {
+        terminal.draw(|f| ui::draw(f, &mut app))?;
+        match rx.recv()? {
+            Event::Input(event) => match event.code {
+                KeyCode::Char('q') => {
+                    disable_raw_mode()?;
+                    execute!(
+                        terminal.backend_mut(),
+                        LeaveAlternateScreen,
+                        DisableMouseCapture
+                    )?;
+                    terminal.show_cursor()?;
+                    break;
+                }
+                KeyCode::Char(c) => app.on_key(c),
+                KeyCode::Left => app.on_left(),
+                KeyCode::Up => app.on_up(),
+                KeyCode::Right => app.on_right(),
+                KeyCode::Down => app.on_down(),
+                _ => {}
+            },
+            // TODO
+            Event::MouseEvent(event) => match event.kind {
+                _ => {}
+            },
+            Event::Tick => app.on_tick(),
         }
-        _ => (),
+        if app.should_quit {
+            break;
+        }
     }
+
+    println!("{:#?}", boxscore);
+
+    Ok(())
 }
