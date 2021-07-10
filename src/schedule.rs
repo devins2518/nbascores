@@ -11,15 +11,22 @@ pub struct Games<'lf> {
 
 impl<'lf> Games<'lf> {
     pub fn new(client: &Client) -> Result<Self, reqwest::Error> {
+        // let schedules = Box::leak::<'lf>(Box::new(
+        //     client
+        //         .get("http://data.nba.com/prod/v1/2020/schedule.json")
+        //         .send()?
+        //         .text()?,
+        // ));
         let schedules = Box::leak::<'lf>(Box::new(
-            client
-                .get("http://data.nba.com/prod/v1/2020/schedule.json")
-                .send()?
-                .text()?,
+            std::fs::read_to_string(
+                std::path::PathBuf::from(std::env!("CARGO_MANIFEST_DIR").to_string())
+                    .join("src/schedule.json"),
+            )
+            .unwrap(),
         ));
 
         // SAFETY: should not fail if json was properly fetched
-        Ok(serde_json::from_str::<Games>(schedules).unwrap())
+        Ok(serde_json::from_str::<Games>(&**schedules).unwrap())
     }
 
     // Likely not useful, NBA has games scheduled at the end of the season which aren't that

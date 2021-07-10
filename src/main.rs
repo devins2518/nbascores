@@ -69,7 +69,11 @@ fn main() -> Result<(), Box<dyn Error>> {
         .unwrap_or(&utils::today())
         .to_string();
     let games = sc.get_date_game_id(&date);
-    let boxscore = boxscore::BoxScore::new(&client, &date, games[0]);
+    // TODO: do something else lol
+    if games.is_empty() {
+        return Ok(println!("There are no games today"));
+    }
+    let boxscore = boxscore::BoxScore::new(&client, &date, games[0]).unwrap();
 
     enable_raw_mode()?;
 
@@ -108,7 +112,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
     });
 
-    let mut app = app::App::new("NBAScores", enhanced_graphics);
+    let mut app = app::App::new("NBAScores", enhanced_graphics, boxscore);
 
     terminal.clear()?;
 
@@ -126,11 +130,11 @@ fn main() -> Result<(), Box<dyn Error>> {
                     terminal.show_cursor()?;
                     break;
                 }
+                KeyCode::Left | KeyCode::Char('l') => app.on_left(),
+                KeyCode::Up | KeyCode::Char('k') => app.on_up(),
+                KeyCode::Right | KeyCode::Char('h') => app.on_right(),
+                KeyCode::Down | KeyCode::Char('j') => app.on_down(),
                 KeyCode::Char(c) => app.on_key(c),
-                KeyCode::Left => app.on_left(),
-                KeyCode::Up => app.on_up(),
-                KeyCode::Right => app.on_right(),
-                KeyCode::Down => app.on_down(),
                 _ => {}
             },
             // TODO
@@ -144,7 +148,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
     }
 
-    println!("{:#?}", boxscore);
+    // println!("{:#?}", boxscore);
 
     Ok(())
 }

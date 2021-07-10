@@ -1,3 +1,4 @@
+use crate::boxscore::BoxScore;
 use crate::utils::{RandomSignal, SinSignal, StatefulList, TabsState};
 
 const TASKS: [&str; 24] = [
@@ -115,12 +116,13 @@ pub struct App<'a> {
     pub _signals: Signals,
     pub _barchart: Vec<(&'a str, u64)>,
     pub _servers: Vec<Server<'a>>,
+    pub boxscore: BoxScore<'a>,
     pub enhanced_graphics: bool,
     // pub selected: ,
 }
 
 impl<'a> App<'a> {
-    pub fn new(title: &'a str, enhanced_graphics: bool) -> App<'a> {
+    pub fn new(title: &'a str, enhanced_graphics: bool, boxscore: BoxScore<'a>) -> App<'a> {
         let mut rand_signal = RandomSignal::new();
         let sparkline_points = rand_signal.by_ref().take(300).collect();
         let mut sin_signal = SinSignal::new(0.2, 3.0, 18.0);
@@ -180,6 +182,7 @@ impl<'a> App<'a> {
                     status: "Up",
                 },
             ],
+            boxscore,
             enhanced_graphics,
         }
     }

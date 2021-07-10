@@ -5,9 +5,8 @@ use tui::{
     style::{Color, Modifier, Style},
     symbols,
     text::{Span, Spans},
-    widgets::canvas::{Canvas, Line, Map, MapResolution, Rectangle},
     widgets::{
-        Axis, BarChart, Block, Borders, Cell, Chart, Dataset, Gauge, LineGauge, List, ListItem,
+        Axis, BarChart, Block, Borders, Chart, Dataset, Gauge, LineGauge, List, ListItem,
         Paragraph, Row, Sparkline, Table, Tabs, Wrap,
     },
     Frame,
@@ -301,76 +300,85 @@ where
     B: Backend,
 {
     let chunks = Layout::default()
-        .constraints([Constraint::Percentage(30), Constraint::Percentage(70)].as_ref())
-        .direction(Direction::Horizontal)
+        .constraints([Constraint::Percentage(100)].as_ref())
         .split(area);
     let up_style = Style::default().fg(Color::Green);
-    let failure_style = Style::default()
-        .fg(Color::Red)
-        .add_modifier(Modifier::RAPID_BLINK | Modifier::CROSSED_OUT);
-    let rows = app._servers.iter().map(|s| {
-        let style = if s.status == "Up" {
-            up_style
-        } else {
-            failure_style
-        };
-        Row::new(vec![s.name, s.location, s.status]).style(style)
-    });
+    let down_style = Style::default().fg(Color::Red);
+    let rows = app
+        .boxscore
+        .stats
+        .as_ref()
+        .unwrap()
+        .active_players
+        .iter()
+        .map(|s| {
+            let style = if let Some(true) = s.is_on_court {
+                up_style
+            } else {
+                down_style
+            };
+            Row::new([
+                format!("{} {}", s.first_name, s.last_name),
+                // TODO: reomve unwraps as its not always valid
+                s.pos.unwrap().to_string(),
+                format!("{: >5}", s.min.unwrap()),
+                format!("{: >5}", s.points.unwrap()),
+                format!("{: >5}", s.tot_reb.unwrap()),
+                format!("{: >5}", s.assists.unwrap()),
+                format!("{: >5}", s.steals.unwrap()),
+                format!("{: >5}", s.blocks.unwrap()),
+                // Blocked Attempts
+                format!("{: >5}", s.blocks.unwrap()),
+                format!("{: >5}", s.fgm.unwrap()),
+                format!("{: >5}", s.fga.unwrap()),
+                format!("{: >5}", s.fgp.unwrap()),
+                format!("{: >5}", s.tpm.unwrap()),
+                format!("{: >5}", s.tpa.unwrap()),
+                format!("{: >5}", s.tpp.unwrap()),
+                format!("{: >5}", s.ftm.unwrap()),
+                format!("{: >5}", s.fta.unwrap()),
+                format!("{: >5}", s.ftp.unwrap()),
+                format!("{: >5}", s.off_reb.unwrap()),
+                format!("{: >5}", s.def_reb.unwrap()),
+                format!("{: >5}", s.turnovers.unwrap()),
+                format!("{: >5}", s.p_fouls.unwrap()),
+                format!("{: >5}", s.plus_minus.unwrap()),
+            ])
+            .style(style)
+        });
     let table = Table::new(rows)
         .header(
-            Row::new(vec!["Server", "Location", "Status"])
-                .style(Style::default().fg(Color::Yellow))
-                .bottom_margin(1),
+            Row::new([
+                "Player", "P", "Min", "Pts", "Reb", "Ast", "Stl", "Blk", "FGM", "FGA", "FG%",
+                "3PM", "3PA", "3P%", "FTM", "FTA", "FT%", "OREB", "DREB", "TOV", "PF", "+/-",
+            ])
+            .style(Style::default().fg(Color::Yellow))
+            .bottom_margin(1),
         )
-        .block(Block::default().title("Servers").borders(Borders::ALL))
+        .block(Block::default().title("Boxscore").borders(Borders::ALL))
         .widths(&[
             Constraint::Length(15),
-            Constraint::Length(15),
-            Constraint::Length(10),
+            Constraint::Length(3),
+            Constraint::Length(5),
+            Constraint::Length(5),
+            Constraint::Length(5),
+            Constraint::Length(5),
+            Constraint::Length(5),
+            Constraint::Length(5),
+            Constraint::Length(5),
+            Constraint::Length(5),
+            Constraint::Length(5),
+            Constraint::Length(5),
+            Constraint::Length(5),
+            Constraint::Length(5),
+            Constraint::Length(5),
+            Constraint::Length(5),
+            Constraint::Length(5),
+            Constraint::Length(5),
+            Constraint::Length(5),
+            Constraint::Length(5),
+            Constraint::Length(5),
+            Constraint::Length(5),
         ]);
     f.render_widget(table, chunks[0]);
-
-    let map = Canvas::default()
-        .block(Block::default().title("World").borders(Borders::ALL))
-        .paint(|ctx| {
-            ctx.draw(&Map {
-                color: Color::White,
-                resolution: MapResolution::High,
-            });
-            ctx.layer();
-            ctx.draw(&Rectangle {
-                x: 0.0,
-                y: 30.0,
-                width: 10.0,
-                height: 10.0,
-                color: Color::Yellow,
-            });
-            for (i, s1) in app._servers.iter().enumerate() {
-                for s2 in &app._servers[i + 1..] {
-                    ctx.draw(&Line {
-                        x1: s1.coords.1,
-                        y1: s1.coords.0,
-                        y2: s2.coords.0,
-                        x2: s2.coords.1,
-                        color: Color::Yellow,
-                    });
-                }
-            }
-            for server in &app._servers {
-                let color = if server.status == "Up" {
-                    Color::Green
-                } else {
-                    Color::Red
-                };
-                ctx.print(server.coords.1, server.coords.0, "X", color);
-            }
-        })
-        .marker(if app.enhanced_graphics {
-            symbols::Marker::Braille
-        } else {
-            symbols::Marker::Dot
-        })
-        .x_bounds([-180.0, 180.0])
-        .y_bounds([-90.0, 90.0]);
-    f.render_widget(map, chunks[1]);
 }

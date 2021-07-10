@@ -17,21 +17,46 @@ impl<'lf> BoxScore<'lf> {
         game_date: &str,
         game_id: &str,
     ) -> Result<Self, Box<dyn std::error::Error>> {
-        println!(
-            "http://data.nba.com/prod/v1/{}/{}_boxscore.json",
-            game_date, game_id
-        );
+        // let boxscore = Box::leak::<'lf>(Box::new(
+        //     client
+        //         .get(format!(
+        //             "http://data.nba.com/prod/v1/{}/{}_boxscore.json",
+        //             game_date, game_id
+        //         ))
+        //         .send()?
+        //         .text()?,
+        // ));
         let boxscore = Box::leak::<'lf>(Box::new(
-            client
-                .get(format!(
-                    "http://data.nba.com/prod/v1/{}/{}_boxscore.json",
-                    game_date, game_id
-                ))
-                .send()?
-                .text()?,
+            std::fs::read_to_string(
+                std::path::PathBuf::from(format!("{}", std::env!("CARGO_MANIFEST_DIR")))
+                    .join("src/boxscore.json"),
+            )
+            .unwrap(),
         ));
 
-        Ok(serde_json::from_str::<BoxScore<'lf>>(boxscore)?)
+        let mut boxscore = serde_json::from_str::<BoxScore<'lf>>(boxscore)?;
+        // TODO: jesus christ
+        if let None = boxscore.stats {
+            let bs = Box::leak(Box::new(
+                client
+                    .get(format!(
+                        "http://data.nba.com/prod/v1/{}/{}_boxscore.json",
+                        game_date, game_id
+                    ))
+                    .send()?
+                    .text()?,
+            ));
+            let old_bs = serde_json::from_str::<BoxScore<'_>>(bs)?;
+            boxscore.stats = Some(Stats {
+                times_tied: "0",
+                lead_changes: "0",
+                v_team: old_bs.basic_game_data.v_team.clone(),
+                h_team: old_bs.basic_game_data.h_team.clone(),
+                active_players: old_bs.stats.as_ref().unwrap().active_players.clone(),
+            })
+        }
+
+        Ok(boxscore)
     }
 
     fn print_game(&self) {
@@ -155,7 +180,7 @@ pub struct Stats<'lf> {
     lead_changes: &'lf str,
     v_team: Team<'lf>,
     h_team: Team<'lf>,
-    active_players: Vec<Players<'lf>>,
+    pub active_players: Vec<Players<'lf>>,
 }
 
 impl<'lf> Stats<'lf> {
