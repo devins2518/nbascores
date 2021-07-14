@@ -57,7 +57,11 @@ where
         let players = if let Some(x) = helper.stats {
             x.active_players
         } else {
-            Player::from_team_id(helper.bgd.v_team.team_id.unwrap())
+            [
+                Player::from_team_id(helper.bgd.h_team.team_id.unwrap()),
+                Player::from_team_id(helper.bgd.v_team.team_id.unwrap()),
+            ]
+            .concat()
         };
 
         Ok(Self {
