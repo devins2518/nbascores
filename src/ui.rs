@@ -321,11 +321,11 @@ where
         .split(area);
     let titles = vec![
         Spans::from(Span::styled(
-            app.boxscore.h_team.tri_code.unwrap(),
+            app.boxscore.h_team.tri_code,
             Style::default().fg(Color::Green),
         )),
         Spans::from(Span::styled(
-            app.boxscore.v_team.tri_code.unwrap(),
+            app.boxscore.v_team.tri_code,
             Style::default().fg(Color::Green),
         )),
     ];

@@ -1,15 +1,15 @@
 use crate::utils::*;
 use reqwest::blocking::Client;
+use serde::de::Deserialize;
 use serde_derive::Deserialize;
 
 // TODO: remove allocations using custom de impl
-#[derive(Deserialize, Debug)]
-#[serde(bound(deserialize = "'de: 'lf"))]
-pub struct Games<'lf> {
-    league: League<'lf>,
+#[derive(Debug)]
+pub struct Schedule<'lf> {
+    games: Vec<Game<'lf>>,
 }
 
-impl<'lf> Games<'lf> {
+impl<'lf> Schedule<'lf> {
     pub fn new(client: &Client) -> Result<Self, reqwest::Error> {
         let schedules = Box::leak::<'lf>(Box::new(
             client
@@ -26,11 +26,11 @@ impl<'lf> Games<'lf> {
         // ));
 
         // SAFETY: should not fail if json was properly fetched
-        Ok(serde_json::from_str::<Games>(&**schedules).unwrap())
+        Ok(serde_json::from_str::<Schedule>(&**schedules).unwrap())
     }
 
     pub fn get_date_game_id(&self, date: &str) -> Vec<&str> {
-        let vec = self.league.standard.as_slice();
+        let vec = self.games.as_slice();
         vec.iter()
             .filter(|&x| x.start_date_eastern == date)
             .map(|x| x.game_id)
@@ -38,10 +38,31 @@ impl<'lf> Games<'lf> {
     }
 }
 
-#[derive(Deserialize, Debug)]
-#[serde(bound(deserialize = "'de: 'lf"))]
-struct League<'lf> {
-    standard: Vec<Game<'lf>>,
+impl<'lf, 'de> Deserialize<'de> for Schedule<'lf>
+where
+    'de: 'lf,
+{
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        #[derive(Deserialize)]
+        #[serde(bound(deserialize = "'de: 'lf"))]
+        struct Root<'lf> {
+            league: League<'lf>,
+        }
+        #[derive(Deserialize, Debug)]
+        #[serde(bound(deserialize = "'de: 'lf"))]
+        struct League<'lf> {
+            standard: Vec<Game<'lf>>,
+        }
+
+        let helper = Root::deserialize(deserializer)?;
+
+        Ok(Self {
+            games: helper.league.standard,
+        })
+    }
 }
 
 #[derive(Deserialize, Debug)]
@@ -65,5 +86,96 @@ struct Game<'lf> {
     playoffs: Option<Playoffs<'lf>>,
     h_team: Team<'lf>,
     v_team: Team<'lf>,
-    watch: Watch<'lf>,
+}
+
+#[derive(Debug)]
+struct Team<'lf> {
+    team_id: &'lf str,
+    score: u8,
+    win: u8,
+    loss: u8,
+}
+
+impl<'lf, 'de> Deserialize<'de> for Team<'lf>
+where
+    'de: 'lf,
+{
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        #[derive(Deserialize)]
+        #[serde(rename_all = "camelCase")]
+        #[serde(bound(deserialize = "'de: 'lf"))]
+        struct Root<'lf> {
+            team_id: &'lf str,
+            score: &'lf str,
+            win: &'lf str,
+            loss: &'lf str,
+        }
+
+        let helper = Root::deserialize(deserializer)?;
+
+        Ok(Self {
+            team_id: helper.team_id,
+            score: helper.score.parse().unwrap_or(0),
+            win: helper.win.parse().unwrap_or(0),
+            loss: helper.loss.parse().unwrap_or(0),
+        })
+    }
+}
+
+#[derive(Debug)]
+struct Playoffs<'lf> {
+    round_num: &'lf str,
+    conf_name: &'lf str,
+    series_id: &'lf str,
+    is_series_completed: bool,
+    game_num_in_series: &'lf str,
+    is_if_necessary: bool,
+    v_team_seed: u8,
+    h_team_seed: u8,
+}
+
+impl<'lf, 'de> Deserialize<'de> for Playoffs<'lf>
+where
+    'de: 'lf,
+{
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        #[derive(Deserialize)]
+        #[serde(rename_all = "camelCase")]
+        #[serde(bound(deserialize = "'de: 'lf"))]
+        struct Root<'lf> {
+            round_num: &'lf str,
+            conf_name: &'lf str,
+            series_id: &'lf str,
+            is_series_completed: bool,
+            game_num_in_series: &'lf str,
+            is_if_necessary: bool,
+            v_team: Team<'lf>,
+            h_team: Team<'lf>,
+        }
+        #[derive(Deserialize)]
+        #[serde(rename_all = "camelCase")]
+        #[serde(bound(deserialize = "'de: 'lf"))]
+        struct Team<'lf> {
+            seed_num: &'lf str,
+        }
+
+        let helper = Root::deserialize(deserializer)?;
+
+        Ok(Self {
+            round_num: helper.round_num,
+            conf_name: helper.conf_name,
+            series_id: helper.series_id,
+            is_series_completed: helper.is_series_completed,
+            game_num_in_series: helper.game_num_in_series,
+            is_if_necessary: helper.is_if_necessary,
+            v_team_seed: helper.v_team.seed_num.parse().unwrap_or(0),
+            h_team_seed: helper.h_team.seed_num.parse().unwrap_or(0),
+        })
+    }
 }

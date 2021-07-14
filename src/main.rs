@@ -1,5 +1,6 @@
 mod app;
 mod boxscore;
+mod pbp;
 mod schedule;
 mod ui;
 mod utils;
@@ -63,7 +64,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         .unwrap();
 
     let client = reqwest::blocking::Client::new();
-    let sc = schedule::Games::new(&client)
+    let sc = schedule::Schedule::new(&client)
         .expect("Error occured fetching `http://data.nba.com/prod/v1/2020/schedule.json`.");
     let date = matches
         .value_of("date")

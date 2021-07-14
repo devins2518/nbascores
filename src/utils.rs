@@ -40,55 +40,6 @@ struct Video<'lf> {
     is_oculus_venues: bool,
 }
 
-#[derive(Deserialize, Debug, Default, Clone)]
-#[serde(rename_all = "camelCase")]
-#[serde(bound(deserialize = "'de: 'lf"))]
-pub struct Team<'lf> {
-    seed_num: Option<&'lf str>,
-    series_win: Option<&'lf str>,
-    is_series_winner: Option<bool>,
-    pub team_id: Option<&'lf str>,
-    pub tri_code: Option<&'lf str>,
-    win: Option<&'lf str>,
-    loss: Option<&'lf str>,
-    series_loss: Option<&'lf str>,
-    pub score: Option<&'lf str>,
-    pub linescore: Option<Vec<Score<'lf>>>,
-    fast_break_points: Option<&'lf str>,
-    points_in_paint: Option<&'lf str>,
-    biggest_lead: Option<&'lf str>,
-    second_chance_points: Option<&'lf str>,
-    points_off_turnovers: Option<&'lf str>,
-    longest_run: Option<&'lf str>,
-    pub totals: Option<Totals<'lf>>,
-    leaders: Option<Leaders<'lf>>,
-}
-
-#[derive(Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
-#[serde(bound(deserialize = "'de: 'lf"))]
-pub struct Tickets<'lf> {
-    mobile_app: &'lf str,
-    desktop_web: &'lf str,
-    mobile_web: &'lf str,
-    leag_game_info: &'lf str,
-    leag_tix: &'lf str,
-}
-
-#[derive(Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
-#[serde(bound(deserialize = "'de: 'lf"))]
-pub struct GameDuration<'lf> {
-    hours: &'lf str,
-    minutes: &'lf str,
-}
-
-#[derive(Deserialize, Debug)]
-#[serde(bound(deserialize = "'de: 'lf"))]
-pub struct Nugget<'lf> {
-    text: &'lf str,
-}
-
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct Period {
@@ -97,21 +48,6 @@ pub struct Period {
     max_regular: usize,
     is_halftime: Option<bool>,
     is_end_of_period: Option<bool>,
-}
-
-#[derive(Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
-#[serde(bound(deserialize = "'de: 'lf"))]
-pub struct Playoffs<'lf> {
-    round_num: &'lf str,
-    conf_name: &'lf str,
-    series_id: &'lf str,
-    series_summary_text: &'lf str,
-    is_series_completed: bool,
-    game_num_in_series: &'lf str,
-    is_if_necessary: bool,
-    v_team: Team<'lf>,
-    h_team: Team<'lf>,
 }
 
 #[derive(Deserialize, Debug, Clone)]

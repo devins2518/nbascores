@@ -200,8 +200,8 @@ impl<'a> App<'a> {
 
     pub fn get_current_team(&self) -> &str {
         match self.tabs.team {
-            TabTeam::Home => self.boxscore.h_team.team_id.unwrap(),
-            TabTeam::Visitor => self.boxscore.v_team.team_id.unwrap(),
+            TabTeam::Home => self.boxscore.h_team.team_id,
+            TabTeam::Visitor => self.boxscore.v_team.team_id,
         }
     }
 }
