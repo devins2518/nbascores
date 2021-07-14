@@ -1,14 +1,12 @@
 use crate::utils::*;
+use serde::de::Deserialize;
 use serde_derive::Deserialize;
 
-// TODO: remove allocations using custom de impl
-#[derive(Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
-#[serde(bound(deserialize = "'de: 'lf"))]
+#[derive(Debug)]
 pub struct BoxScore<'lf> {
-    pub basic_game_data: BasicGameData<'lf>,
-    pub previous_matchup: PreviousMatchup<'lf>,
-    pub stats: Option<Stats<'lf>>,
+    pub players: Vec<Player<'lf>>,
+    pub v_team: Team<'lf>,
+    pub h_team: Team<'lf>,
 }
 
 impl<'lf> BoxScore<'lf> {
@@ -17,92 +15,56 @@ impl<'lf> BoxScore<'lf> {
         game_date: &str,
         game_id: &str,
     ) -> Result<Self, Box<dyn std::error::Error>> {
-        // let boxscore = Box::leak::<'lf>(Box::new(
-        //     client
-        //         .get(format!(
-        //             "http://data.nba.com/prod/v1/{}/{}_boxscore.json",
-        //             game_date, game_id
-        //         ))
-        //         .send()?
-        //         .text()?,
-        // ));
         let boxscore = Box::leak::<'lf>(Box::new(
-            std::fs::read_to_string(
-                std::path::PathBuf::from(format!("{}", std::env!("CARGO_MANIFEST_DIR")))
-                    .join("src/boxscore.json"),
-            )
-            .unwrap(),
+            client
+                .get(format!(
+                    "http://data.nba.com/prod/v1/{}/{}_boxscore.json",
+                    game_date, game_id
+                ))
+                .send()?
+                .text()?,
         ));
+        // let boxscore = Box::leak::<'lf>(Box::new(
+        //     std::fs::read_to_string(
+        //         std::path::PathBuf::from(format!("{}", std::env!("CARGO_MANIFEST_DIR")))
+        //             .join("src/boxscore.json"),
+        //     )
+        //     .unwrap(),
+        // ));
 
-        let mut boxscore = serde_json::from_str::<BoxScore<'lf>>(boxscore)?;
-        // TODO: jesus christ
-        if let None = boxscore.stats {
-            let bs = Box::leak(Box::new(
-                client
-                    .get(format!(
-                        "http://data.nba.com/prod/v1/{}/{}_boxscore.json",
-                        game_date, game_id
-                    ))
-                    .send()?
-                    .text()?,
-            ));
-            let old_bs = serde_json::from_str::<BoxScore<'_>>(bs)?;
-            boxscore.stats = Some(Stats {
-                times_tied: "0",
-                lead_changes: "0",
-                v_team: old_bs.basic_game_data.v_team.clone(),
-                h_team: old_bs.basic_game_data.h_team.clone(),
-                active_players: old_bs.stats.as_ref().unwrap().active_players.clone(),
-            })
-        }
+        let boxscore = serde_json::from_str::<BoxScore<'lf>>(boxscore)?;
 
         Ok(boxscore)
     }
+}
 
-    fn print_game(&self) {
-        let bgd = &self.basic_game_data;
-        let stats = if let Some(stats) = &self.stats {
-            stats.clone()
-        } else {
-            Stats {
-                times_tied: "0",
-                lead_changes: "0",
-                v_team: Team::default(),
-                h_team: Team::default(),
-                active_players: Vec::new(),
-            }
-        };
-        let v_linescore = bgd.v_team.get_linescore();
-        let h_linescore = bgd.h_team.get_linescore();
-
-        if bgd.period.current == 0 {
-            println!(
-                "{}@{} has not begun yet.",
-                bgd.v_team.tri_code.as_ref().unwrap(),
-                bgd.h_team.tri_code.as_ref().unwrap(),
-            );
+impl<'lf, 'de> Deserialize<'de> for BoxScore<'lf>
+where
+    'de: 'lf,
+{
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        #[derive(Deserialize)]
+        #[serde(bound(deserialize = "'de: 'lf"))]
+        struct Root<'lf> {
+            #[serde(rename(deserialize = "basicGameData"))]
+            bgd: BasicGameData<'lf>,
+            stats: Option<Stats<'lf>>,
         }
+        let helper = Root::deserialize(deserializer)?;
+        let players = if let Some(x) = helper.stats {
+            x.active_players
+        } else {
+            Player::from_team_id(helper.bgd.v_team.team_id.unwrap())
+        };
 
-        println!(" T      1  2  3  4  T");
-        // TODO crashes if run for todays game that hasnt started
-        println!(
-            "{}    {: >2} {: >2} {: >2} {: >2} {: >3}",
-            bgd.v_team.tri_code.as_ref().unwrap(),
-            v_linescore[0],
-            v_linescore[1],
-            v_linescore[2],
-            v_linescore[3],
-            stats.get_total_v()
-        );
-        println!(
-            "{}    {: >2} {: >2} {: >2} {: >2} {: >3}",
-            bgd.h_team.tri_code.as_ref().unwrap(),
-            h_linescore[0],
-            h_linescore[1],
-            h_linescore[2],
-            h_linescore[3],
-            stats.get_total_h()
-        )
+        Ok(Self {
+            players,
+            v_team: helper.bgd.v_team,
+            h_team: helper.bgd.h_team,
+        })
     }
 }
 
@@ -180,22 +142,17 @@ pub struct Stats<'lf> {
     lead_changes: &'lf str,
     v_team: Team<'lf>,
     h_team: Team<'lf>,
-    pub active_players: Vec<Players<'lf>>,
+    pub active_players: Vec<Player<'lf>>,
 }
 
-impl<'lf> Stats<'lf> {
-    pub fn get_total_v(&self) -> &str {
-        if let Some(total) = &self.v_team.totals {
-            total.points
-        } else {
-            "0"
-        }
-    }
-    pub fn get_total_h(&self) -> &str {
-        if let Some(total) = &self.h_team.totals {
-            total.points
-        } else {
-            "0"
+impl<'lf> Default for Stats<'lf> {
+    fn default() -> Self {
+        Self {
+            times_tied: "0",
+            lead_changes: "0",
+            v_team: Team::default(),
+            h_team: Team::default(),
+            active_players: Vec::new(),
         }
     }
 }

@@ -300,52 +300,66 @@ where
     B: Backend,
 {
     let chunks = Layout::default()
-        .constraints([Constraint::Percentage(100)].as_ref())
+        .constraints([Constraint::Length(3), Constraint::Min(0)].as_ref())
         .split(area);
+    let titles = vec![
+        Spans::from(Span::styled(
+            app.boxscore.h_team.tri_code.unwrap(),
+            Style::default().fg(Color::Green),
+        )),
+        Spans::from(Span::styled(
+            app.boxscore.v_team.tri_code.unwrap(),
+            Style::default().fg(Color::Green),
+        )),
+    ];
+    let tabs = Tabs::new(titles)
+        .block(Block::default().borders(Borders::ALL).title("Team"))
+        .highlight_style(Style::default().fg(Color::Yellow))
+        .select(app.tabs.team as usize);
+    f.render_widget(tabs, chunks[0]);
     let up_style = Style::default().fg(Color::Green);
     let down_style = Style::default().fg(Color::Red);
-    let rows = app
-        .boxscore
-        .stats
-        .as_ref()
-        .unwrap()
-        .active_players
-        .iter()
-        .map(|s| {
+    let rows = app.boxscore.players.iter().filter_map(|s| {
+        if s.team_id.unwrap() == app.get_current_team() {
             let style = if let Some(true) = s.is_on_court {
                 up_style
             } else {
                 down_style
             };
-            Row::new([
-                format!("{} {}", s.first_name, s.last_name),
-                // TODO: reomve unwraps as its not always valid
-                s.pos.unwrap().to_string(),
-                format!("{: >5}", s.min.unwrap()),
-                format!("{: >5}", s.points.unwrap()),
-                format!("{: >5}", s.tot_reb.unwrap()),
-                format!("{: >5}", s.assists.unwrap()),
-                format!("{: >5}", s.steals.unwrap()),
-                format!("{: >5}", s.blocks.unwrap()),
-                // Blocked Attempts
-                format!("{: >5}", s.blocks.unwrap()),
-                format!("{: >5}", s.fgm.unwrap()),
-                format!("{: >5}", s.fga.unwrap()),
-                format!("{: >5}", s.fgp.unwrap()),
-                format!("{: >5}", s.tpm.unwrap()),
-                format!("{: >5}", s.tpa.unwrap()),
-                format!("{: >5}", s.tpp.unwrap()),
-                format!("{: >5}", s.ftm.unwrap()),
-                format!("{: >5}", s.fta.unwrap()),
-                format!("{: >5}", s.ftp.unwrap()),
-                format!("{: >5}", s.off_reb.unwrap()),
-                format!("{: >5}", s.def_reb.unwrap()),
-                format!("{: >5}", s.turnovers.unwrap()),
-                format!("{: >5}", s.p_fouls.unwrap()),
-                format!("{: >5}", s.plus_minus.unwrap()),
-            ])
-            .style(style)
-        });
+            Some(
+                Row::new([
+                    format!("{} {}", s.first_name, s.last_name),
+                    // TODO: reomve unwraps as its not always valid
+                    s.pos.unwrap().to_string(),
+                    format!("{: >5}", s.min.unwrap_or("0")),
+                    format!("{: >5}", s.points.unwrap_or("0")),
+                    format!("{: >5}", s.tot_reb.unwrap_or("0")),
+                    format!("{: >5}", s.assists.unwrap_or("0")),
+                    format!("{: >5}", s.steals.unwrap_or("0")),
+                    format!("{: >5}", s.blocks.unwrap_or("0")),
+                    // Blocked Attempts
+                    format!("{: >5}", s.blocks.unwrap_or("0")),
+                    format!("{: >5}", s.fgm.unwrap_or("0")),
+                    format!("{: >5}", s.fga.unwrap_or("0")),
+                    format!("{: >5}", s.fgp.unwrap_or("0")),
+                    format!("{: >5}", s.tpm.unwrap_or("0")),
+                    format!("{: >5}", s.tpa.unwrap_or("0")),
+                    format!("{: >5}", s.tpp.unwrap_or("0")),
+                    format!("{: >5}", s.ftm.unwrap_or("0")),
+                    format!("{: >5}", s.fta.unwrap_or("0")),
+                    format!("{: >5}", s.ftp.unwrap_or("0")),
+                    format!("{: >5}", s.off_reb.unwrap_or("0")),
+                    format!("{: >5}", s.def_reb.unwrap_or("0")),
+                    format!("{: >5}", s.turnovers.unwrap_or("0")),
+                    format!("{: >5}", s.p_fouls.unwrap_or("0")),
+                    format!("{: >5}", s.plus_minus.unwrap_or("0")),
+                ])
+                .style(style),
+            )
+        } else {
+            None
+        }
+    });
     let table = Table::new(rows)
         .header(
             Row::new([
@@ -357,28 +371,31 @@ where
         )
         .block(Block::default().title("Boxscore").borders(Borders::ALL))
         .widths(&[
-            Constraint::Length(15),
-            Constraint::Length(3),
-            Constraint::Length(5),
-            Constraint::Length(5),
-            Constraint::Length(5),
-            Constraint::Length(5),
-            Constraint::Length(5),
-            Constraint::Length(5),
-            Constraint::Length(5),
-            Constraint::Length(5),
-            Constraint::Length(5),
-            Constraint::Length(5),
-            Constraint::Length(5),
-            Constraint::Length(5),
-            Constraint::Length(5),
-            Constraint::Length(5),
-            Constraint::Length(5),
-            Constraint::Length(5),
-            Constraint::Length(5),
-            Constraint::Length(5),
-            Constraint::Length(5),
-            Constraint::Length(5),
+            // TODO: Variable lengths
+            // Kinda broken: https://github.com/fdehau/tui-rs/issues/499
+            // Constraint::Min(0),
+            Constraint::Min(15),
+            Constraint::Min(3),
+            Constraint::Min(5),
+            Constraint::Min(5),
+            Constraint::Min(5),
+            Constraint::Min(5),
+            Constraint::Min(5),
+            Constraint::Min(5),
+            Constraint::Min(5),
+            Constraint::Min(5),
+            Constraint::Min(5),
+            Constraint::Min(5),
+            Constraint::Min(5),
+            Constraint::Min(5),
+            Constraint::Min(5),
+            Constraint::Min(5),
+            Constraint::Min(5),
+            Constraint::Min(5),
+            Constraint::Min(5),
+            Constraint::Min(5),
+            Constraint::Min(5),
+            Constraint::Min(5),
         ]);
-    f.render_widget(table, chunks[0]);
+    f.render_widget(table, chunks[1]);
 }

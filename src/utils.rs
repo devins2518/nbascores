@@ -1,4 +1,5 @@
 use chrono::prelude::*;
+use serde::de::Deserialize;
 use serde_derive::Deserialize;
 use tui::widgets::ListState;
 
@@ -46,7 +47,7 @@ pub struct Team<'lf> {
     seed_num: Option<&'lf str>,
     series_win: Option<&'lf str>,
     is_series_winner: Option<bool>,
-    team_id: Option<&'lf str>,
+    pub team_id: Option<&'lf str>,
     pub tri_code: Option<&'lf str>,
     win: Option<&'lf str>,
     loss: Option<&'lf str>,
@@ -61,36 +62,6 @@ pub struct Team<'lf> {
     longest_run: Option<&'lf str>,
     pub totals: Option<Totals<'lf>>,
     leaders: Option<Leaders<'lf>>,
-}
-
-impl<'lf> Team<'lf> {
-    pub fn get_linescore(&self) -> Vec<&'lf str> {
-        // TODO jesus christ
-        let mut vec = Vec::with_capacity(4);
-        let scores = self.linescore.as_ref().unwrap();
-        if let Some(x) = scores.get(0) {
-            vec.push(x.score);
-        } else {
-            vec.push("0")
-        }
-        if let Some(x) = scores.get(1) {
-            vec.push(x.score);
-        } else {
-            vec.push("0")
-        }
-        if let Some(x) = scores.get(2) {
-            vec.push(x.score);
-        } else {
-            vec.push("0")
-        }
-        if let Some(x) = scores.get(3) {
-            vec.push(x.score);
-        } else {
-            vec.push("0")
-        }
-
-        vec
-    }
 }
 
 #[derive(Deserialize, Debug)]
@@ -186,18 +157,18 @@ struct Leaders<'lf> {
 #[serde(bound(deserialize = "'de: 'lf"))]
 struct Stat<'lf> {
     value: &'lf str,
-    players: Vec<Players<'lf>>,
+    players: Vec<Player<'lf>>,
 }
 
 #[derive(Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 #[serde(bound(deserialize = "'de: 'lf"))]
-pub struct Players<'lf> {
+pub struct Player<'lf> {
     person_id: &'lf str,
     pub first_name: &'lf str,
     pub last_name: &'lf str,
     jersey: Option<&'lf str>,
-    team_id: Option<&'lf str>,
+    pub team_id: Option<&'lf str>,
     pub is_on_court: Option<bool>,
     pub points: Option<&'lf str>,
     pub pos: Option<&'lf str>,
@@ -224,6 +195,57 @@ pub struct Players<'lf> {
     pub plus_minus: Option<&'lf str>,
     pub dnp: Option<&'lf str>,
     pub sort_key: Option<SortKey>,
+}
+
+impl<'lf> Player<'lf> {
+    pub fn from_team_id(team_id: &str) -> Vec<Self> {
+        let json = Box::leak::<'lf>(Box::new(
+            reqwest::blocking::get("http://data.nba.com/10s//prod/v1/2020/players.json")
+                .expect("Could not fetch roster json")
+                .text()
+                .unwrap(),
+        ));
+
+        let roster = serde_json::from_str::<Roster<'lf>>(json).unwrap();
+        roster
+            .players
+            .into_iter()
+            .filter(|x| x.team_id.unwrap() == team_id)
+            .collect()
+    }
+}
+
+struct Roster<'lf> {
+    players: Vec<Player<'lf>>,
+}
+
+impl<'lf, 'de> Deserialize<'de> for Roster<'lf>
+where
+    'de: 'lf,
+{
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        #[derive(Deserialize)]
+        #[serde(bound(deserialize = "'de: 'lf"))]
+        struct Root<'lf> {
+            league: Standard<'lf>,
+        }
+
+        #[derive(Deserialize)]
+        #[serde(bound(deserialize = "'de: 'lf"))]
+        struct Standard<'lf> {
+            #[serde(rename(deserialize = "standard"))]
+            players: Vec<Player<'lf>>,
+        }
+
+        let helper = Root::deserialize(deserializer)?;
+
+        Ok(Self {
+            players: helper.league.players,
+        })
+    }
 }
 
 #[derive(Deserialize, Debug, Clone)]
@@ -308,17 +330,35 @@ impl Iterator for SinSignal {
 
 pub const TAB_NUM: usize = 2;
 
+#[derive(Clone, Copy)]
+pub enum TabTeam {
+    Home,
+    Visitor,
+}
+
 pub struct TabsState<'a> {
     pub titles: [&'a str; TAB_NUM],
     pub index: usize,
+    pub team: TabTeam,
 }
 
 impl<'a> TabsState<'a> {
     pub fn new(titles: [&'a str; TAB_NUM]) -> TabsState {
-        TabsState { titles, index: 0 }
+        TabsState {
+            titles,
+            index: 0,
+            team: TabTeam::Home,
+        }
     }
     pub fn next(&mut self) {
         self.index = (self.index + 1) % TAB_NUM;
+    }
+
+    pub fn next_team(&mut self) {
+        self.team = match self.team {
+            TabTeam::Home => TabTeam::Visitor,
+            TabTeam::Visitor => TabTeam::Home,
+        }
     }
 
     pub fn previous(&mut self) {

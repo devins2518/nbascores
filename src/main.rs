@@ -6,7 +6,9 @@ mod ui;
 mod utils;
 use clap::{App, AppSettings, Arg};
 use crossterm::{
-    event::{self, DisableMouseCapture, EnableMouseCapture, Event as CEvent, KeyCode},
+    event::{
+        self, DisableMouseCapture, EnableMouseCapture, Event as CEvent, KeyCode, KeyModifiers,
+    },
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
@@ -73,7 +75,10 @@ fn main() -> Result<(), Box<dyn Error>> {
     if games.is_empty() {
         return Ok(println!("There are no games today"));
     }
-    let boxscore = boxscore::BoxScore::new(&client, &date, games[0]).unwrap();
+    let boxscore = boxscore::BoxScore::new(&client, &date, games[0]).expect(&format!(
+        "Error occured fetching `http://data.nba.com/prod/v1/{}/{}_boxscore.json`",
+        date, games[0],
+    ));
 
     enable_raw_mode()?;
 
@@ -119,23 +124,31 @@ fn main() -> Result<(), Box<dyn Error>> {
     loop {
         terminal.draw(|f| ui::draw(f, &mut app))?;
         match rx.recv()? {
-            Event::Input(event) => match event.code {
-                KeyCode::Char('q') => {
-                    disable_raw_mode()?;
-                    execute!(
-                        terminal.backend_mut(),
-                        LeaveAlternateScreen,
-                        DisableMouseCapture
-                    )?;
-                    terminal.show_cursor()?;
-                    break;
-                }
-                KeyCode::Left | KeyCode::Char('l') => app.on_left(),
-                KeyCode::Up | KeyCode::Char('k') => app.on_up(),
-                KeyCode::Right | KeyCode::Char('h') => app.on_right(),
-                KeyCode::Down | KeyCode::Char('j') => app.on_down(),
-                KeyCode::Char(c) => app.on_key(c),
-                _ => {}
+            Event::Input(event) => match event.modifiers.intersects(KeyModifiers::SHIFT) {
+                true => match event.code {
+                    KeyCode::Left | KeyCode::Char('L') | KeyCode::Right | KeyCode::Char('H') => {
+                        app.next_team()
+                    }
+                    _ => {}
+                },
+                false => match event.code {
+                    KeyCode::Char('q') => {
+                        disable_raw_mode()?;
+                        execute!(
+                            terminal.backend_mut(),
+                            LeaveAlternateScreen,
+                            DisableMouseCapture
+                        )?;
+                        terminal.show_cursor()?;
+                        break;
+                    }
+                    KeyCode::Left | KeyCode::Char('l') => app.on_left(),
+                    KeyCode::Up | KeyCode::Char('k') => app.on_up(),
+                    KeyCode::Right | KeyCode::Char('h') => app.on_right(),
+                    KeyCode::Down | KeyCode::Char('j') => app.on_down(),
+                    KeyCode::Char(c) => app.on_key(c),
+                    _ => {}
+                },
             },
             // TODO
             Event::MouseEvent(event) => match event.kind {

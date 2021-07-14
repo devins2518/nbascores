@@ -1,5 +1,5 @@
 use crate::boxscore::BoxScore;
-use crate::utils::{RandomSignal, SinSignal, StatefulList, TabsState};
+use crate::utils::{RandomSignal, SinSignal, StatefulList, TabTeam, TabsState};
 
 const TASKS: [&str; 24] = [
     "Item1", "Item2", "Item3", "Item4", "Item5", "Item6", "Item7", "Item8", "Item9", "Item10",
@@ -97,13 +97,6 @@ impl Signals {
     }
 }
 
-pub struct Server<'a> {
-    pub name: &'a str,
-    pub location: &'a str,
-    pub coords: (f64, f64),
-    pub status: &'a str,
-}
-
 pub struct App<'a> {
     pub title: &'a str,
     pub should_quit: bool,
@@ -115,7 +108,6 @@ pub struct App<'a> {
     pub _logs: StatefulList<(&'a str, &'a str)>,
     pub _signals: Signals,
     pub _barchart: Vec<(&'a str, u64)>,
-    pub _servers: Vec<Server<'a>>,
     pub boxscore: BoxScore<'a>,
     pub enhanced_graphics: bool,
     // pub selected: ,
@@ -156,32 +148,6 @@ impl<'a> App<'a> {
                 window: [0.0, 20.0],
             },
             _barchart: EVENTS.to_vec(),
-            _servers: vec![
-                Server {
-                    name: "NorthAmerica-1",
-                    location: "New York City",
-                    coords: (40.71, -74.00),
-                    status: "Up",
-                },
-                Server {
-                    name: "Europe-1",
-                    location: "Paris",
-                    coords: (48.85, 2.35),
-                    status: "Failure",
-                },
-                Server {
-                    name: "SouthAmerica-1",
-                    location: "São Paulo",
-                    coords: (-23.54, -46.62),
-                    status: "Up",
-                },
-                Server {
-                    name: "Asia-1",
-                    location: "Singapore",
-                    coords: (1.35, 103.86),
-                    status: "Up",
-                },
-            ],
             boxscore,
             enhanced_graphics,
         }
@@ -197,6 +163,12 @@ impl<'a> App<'a> {
 
     pub fn on_right(&mut self) {
         self.tabs.next();
+    }
+
+    pub fn next_team(&mut self) {
+        if self.tabs.index == 1 {
+            self.tabs.next_team();
+        }
     }
 
     pub fn on_left(&mut self) {
@@ -226,5 +198,12 @@ impl<'a> App<'a> {
 
         let event = self._barchart.pop().unwrap();
         self._barchart.insert(0, event);
+    }
+
+    pub fn get_current_team(&self) -> &str {
+        match self.tabs.team {
+            TabTeam::Home => self.boxscore.h_team.team_id.unwrap(),
+            TabTeam::Visitor => self.boxscore.v_team.team_id.unwrap(),
+        }
     }
 }
