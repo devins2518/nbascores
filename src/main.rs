@@ -1,7 +1,6 @@
 mod app;
 mod boxscore;
 mod schedule;
-mod today_scoreboard;
 mod ui;
 mod utils;
 use clap::{App, AppSettings, Arg};
@@ -71,14 +70,6 @@ fn main() -> Result<(), Box<dyn Error>> {
         .unwrap_or(&utils::today())
         .to_string();
     let games = sc.get_date_game_id(&date);
-    // TODO: do something else lol
-    if games.is_empty() {
-        return Ok(println!("There are no games today"));
-    }
-    let boxscore = boxscore::BoxScore::new(&client, &date, games[0]).expect(&format!(
-        "Error occured fetching `http://data.nba.com/prod/v1/{}/{}_boxscore.json`",
-        date, games[0],
-    ));
 
     enable_raw_mode()?;
 
@@ -117,21 +108,13 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
     });
 
-    let mut app = app::App::new("NBAScores", enhanced_graphics, boxscore);
-
     terminal.clear()?;
 
-    loop {
-        terminal.draw(|f| ui::draw(f, &mut app))?;
-        match rx.recv()? {
-            Event::Input(event) => match event.modifiers.intersects(KeyModifiers::SHIFT) {
-                true => match event.code {
-                    KeyCode::Left | KeyCode::Char('L') | KeyCode::Right | KeyCode::Char('H') => {
-                        app.next_team()
-                    }
-                    _ => {}
-                },
-                false => match event.code {
+    if games.is_empty() {
+        loop {
+            terminal.draw(|f| ui::draw_empty_games(f))?;
+            match rx.recv()? {
+                Event::Input(event) => match event.code {
                     KeyCode::Char('q') => {
                         disable_raw_mode()?;
                         execute!(
@@ -142,26 +125,57 @@ fn main() -> Result<(), Box<dyn Error>> {
                         terminal.show_cursor()?;
                         break;
                     }
-                    KeyCode::Left | KeyCode::Char('l') => app.on_left(),
-                    KeyCode::Up | KeyCode::Char('k') => app.on_up(),
-                    KeyCode::Right | KeyCode::Char('h') => app.on_right(),
-                    KeyCode::Down | KeyCode::Char('j') => app.on_down(),
-                    KeyCode::Char(c) => app.on_key(c),
+                    _ => (),
+                },
+                _ => (),
+            }
+        }
+    } else {
+        let boxscore = boxscore::BoxScore::new(&client, &date, games[0]).expect(&format!(
+            "Error occured fetching `http://data.nba.com/prod/v1/{}/{}_boxscore.json`",
+            date, games[0],
+        ));
+
+        let mut app = app::App::new("NBAScores", enhanced_graphics, boxscore);
+
+        loop {
+            terminal.draw(|f| ui::draw(f, &mut app))?;
+            match rx.recv()? {
+                Event::Input(event) => match event.modifiers.intersects(KeyModifiers::SHIFT) {
+                    true => match event.code {
+                        KeyCode::Left
+                        | KeyCode::Char('L')
+                        | KeyCode::Right
+                        | KeyCode::Char('H') => app.next_team(),
+                        _ => {}
+                    },
+                    false => match event.code {
+                        KeyCode::Char('q') => {
+                            disable_raw_mode()?;
+                            execute!(
+                                terminal.backend_mut(),
+                                LeaveAlternateScreen,
+                                DisableMouseCapture
+                            )?;
+                            terminal.show_cursor()?;
+                            break;
+                        }
+                        KeyCode::Left | KeyCode::Char('l') => app.on_left(),
+                        KeyCode::Up | KeyCode::Char('k') => app.on_up(),
+                        KeyCode::Right | KeyCode::Char('h') => app.on_right(),
+                        KeyCode::Down | KeyCode::Char('j') => app.on_down(),
+                        KeyCode::Char(c) => app.on_key(c),
+                        _ => {}
+                    },
+                },
+                // TODO
+                Event::MouseEvent(event) => match event.kind {
                     _ => {}
                 },
-            },
-            // TODO
-            Event::MouseEvent(event) => match event.kind {
-                _ => {}
-            },
-            Event::Tick => app.on_tick(),
-        }
-        if app.should_quit {
-            break;
+                Event::Tick => app.on_tick(),
+            }
         }
     }
-
-    // println!("{:#?}", boxscore);
 
     Ok(())
 }

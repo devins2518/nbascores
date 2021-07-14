@@ -1,7 +1,7 @@
 use crate::app::App;
 use tui::{
     backend::Backend,
-    layout::{Constraint, Direction, Layout, Rect},
+    layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     symbols,
     text::{Span, Spans},
@@ -32,6 +32,23 @@ pub fn draw<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         1 => draw_second_tab(f, app, chunks[1]),
         _ => unreachable!(),
     };
+}
+
+pub fn draw_empty_games<B: Backend>(f: &mut Frame<B>) {
+    let chunks = Layout::default()
+        .constraints(
+            [
+                Constraint::Percentage(45),
+                Constraint::Percentage(5),
+                Constraint::Percentage(45),
+            ]
+            .as_ref(),
+        )
+        .split(f.size());
+    let text = Span::raw("There are no games today.");
+    let para = Paragraph::new(text).alignment(Alignment::Center);
+
+    f.render_widget(para, chunks[1]);
 }
 
 fn draw_first_tab<B>(f: &mut Frame<B>, app: &mut App, area: Rect)

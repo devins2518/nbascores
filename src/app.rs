@@ -99,7 +99,6 @@ impl Signals {
 
 pub struct App<'a> {
     pub title: &'a str,
-    pub should_quit: bool,
     pub tabs: TabsState<'a>,
     pub _show_chart: bool,
     pub _progress: f64,
@@ -123,7 +122,6 @@ impl<'a> App<'a> {
         let sin2_points = sin_signal2.by_ref().take(200).collect();
         App {
             title,
-            should_quit: false,
             tabs: TabsState::new(["Game", "Boxscore"]),
             _show_chart: true,
             _progress: 0.0,
@@ -177,7 +175,6 @@ impl<'a> App<'a> {
 
     pub fn on_key(&mut self, c: char) {
         match c {
-            'q' => self.should_quit = true,
             't' => self._show_chart = !self._show_chart,
             _ => {}
         }
