@@ -181,6 +181,7 @@ impl<'a> App<'a> {
     }
 
     pub fn on_tick(&mut self) {
+        // TODO update boxscore
         // Update progress
         self._progress += 0.001;
         if self._progress > 1.0 {
