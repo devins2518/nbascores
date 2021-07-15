@@ -9,41 +9,9 @@ pub fn today() -> String {
 }
 
 #[derive(Deserialize, Debug)]
-#[serde(bound(deserialize = "'de: 'lf"))]
-pub struct Watch<'lf> {
-    broadcast: Broadcast<'lf>,
-}
-
-#[derive(Deserialize, Debug)]
-#[serde(bound(deserialize = "'de: 'lf"))]
-struct Broadcast<'lf> {
-    video: Video<'lf>,
-}
-
-#[derive(Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
-#[serde(bound(deserialize = "'de: 'lf"))]
-struct Video<'lf> {
-    regional_blackout_codes: &'lf str,
-    is_league_pass: bool,
-    is_national_blackout: bool,
-    #[serde(rename(deserialize = "isTNTOT"))]
-    is_tntot: bool,
-    can_purchase: bool,
-    #[serde(rename(deserialize = "isVR"))]
-    is_vr: bool,
-    #[serde(rename(deserialize = "isNextVR"))]
-    is_next_vr: bool,
-    #[serde(rename(deserialize = "isNBAOnTNTVR"))]
-    is_nba_on_tnt_vr: bool,
-    is_magic_leap: bool,
-    is_oculus_venues: bool,
-}
-
-#[derive(Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct Period {
-    pub current: usize,
+    current: usize,
     r#type: usize,
     max_regular: usize,
     is_halftime: Option<bool>,
@@ -54,7 +22,7 @@ pub struct Period {
 #[serde(rename_all = "camelCase")]
 #[serde(bound(deserialize = "'de: 'lf"))]
 pub struct Totals<'lf> {
-    pub points: &'lf str,
+    points: &'lf str,
     fgm: &'lf str,
     fga: &'lf str,
     fgp: &'lf str,

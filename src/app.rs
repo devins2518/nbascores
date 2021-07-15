@@ -1,67 +1,6 @@
 use crate::boxscore::BoxScore;
+use crate::pbp::{Play, PlayByPlay};
 use crate::utils::{RandomSignal, SinSignal, StatefulList, TabTeam, TabsState};
-
-const TASKS: [&str; 24] = [
-    "Item1", "Item2", "Item3", "Item4", "Item5", "Item6", "Item7", "Item8", "Item9", "Item10",
-    "Item11", "Item12", "Item13", "Item14", "Item15", "Item16", "Item17", "Item18", "Item19",
-    "Item20", "Item21", "Item22", "Item23", "Item24",
-];
-
-const LOGS: [(&str, &str); 26] = [
-    ("Event1", "INFO"),
-    ("Event2", "INFO"),
-    ("Event3", "CRITICAL"),
-    ("Event4", "ERROR"),
-    ("Event5", "INFO"),
-    ("Event6", "INFO"),
-    ("Event7", "WARNING"),
-    ("Event8", "INFO"),
-    ("Event9", "INFO"),
-    ("Event10", "INFO"),
-    ("Event11", "CRITICAL"),
-    ("Event12", "INFO"),
-    ("Event13", "INFO"),
-    ("Event14", "INFO"),
-    ("Event15", "INFO"),
-    ("Event16", "INFO"),
-    ("Event17", "ERROR"),
-    ("Event18", "ERROR"),
-    ("Event19", "INFO"),
-    ("Event20", "INFO"),
-    ("Event21", "WARNING"),
-    ("Event22", "INFO"),
-    ("Event23", "INFO"),
-    ("Event24", "WARNING"),
-    ("Event25", "INFO"),
-    ("Event26", "INFO"),
-];
-
-const EVENTS: [(&str, u64); 24] = [
-    ("B1", 9),
-    ("B2", 12),
-    ("B3", 5),
-    ("B4", 8),
-    ("B5", 2),
-    ("B6", 4),
-    ("B7", 5),
-    ("B8", 9),
-    ("B9", 14),
-    ("B10", 15),
-    ("B11", 1),
-    ("B12", 0),
-    ("B13", 4),
-    ("B14", 6),
-    ("B15", 4),
-    ("B16", 6),
-    ("B17", 4),
-    ("B18", 7),
-    ("B19", 13),
-    ("B20", 8),
-    ("B21", 11),
-    ("B22", 9),
-    ("B23", 3),
-    ("B24", 5),
-];
 
 pub struct Signal<S: Iterator> {
     source: S,
@@ -103,17 +42,19 @@ pub struct App<'a> {
     pub _show_chart: bool,
     pub _progress: f64,
     pub _sparkline: Signal<RandomSignal>,
-    pub _tasks: StatefulList<&'a str>,
-    pub _logs: StatefulList<(&'a str, &'a str)>,
     pub _signals: Signals,
-    pub _barchart: Vec<(&'a str, u64)>,
     pub boxscore: BoxScore<'a>,
     pub enhanced_graphics: bool,
-    // pub selected: ,
+    pub plays: StatefulList<Play<'a>>,
 }
 
 impl<'a> App<'a> {
-    pub fn new(title: &'a str, enhanced_graphics: bool, boxscore: BoxScore<'a>) -> App<'a> {
+    pub fn new(
+        title: &'a str,
+        enhanced_graphics: bool,
+        boxscore: BoxScore<'a>,
+        playbyplay: PlayByPlay<'a>,
+    ) -> App<'a> {
         let mut rand_signal = RandomSignal::new();
         let sparkline_points = rand_signal.by_ref().take(300).collect();
         let mut sin_signal = SinSignal::new(0.2, 3.0, 18.0);
@@ -130,8 +71,6 @@ impl<'a> App<'a> {
                 points: sparkline_points,
                 tick_rate: 1,
             },
-            _tasks: StatefulList::with_items(TASKS.to_vec()),
-            _logs: StatefulList::with_items(LOGS.to_vec()),
             _signals: Signals {
                 sin1: Signal {
                     source: sin_signal,
@@ -145,18 +84,18 @@ impl<'a> App<'a> {
                 },
                 window: [0.0, 20.0],
             },
-            _barchart: EVENTS.to_vec(),
             boxscore,
             enhanced_graphics,
+            plays: StatefulList::with_items(playbyplay.plays),
         }
     }
 
     pub fn on_up(&mut self) {
-        self._tasks.previous();
+        self.plays.previous();
     }
 
     pub fn on_down(&mut self) {
-        self._tasks.next();
+        self.plays.next();
     }
 
     pub fn on_right(&mut self) {
@@ -190,12 +129,6 @@ impl<'a> App<'a> {
 
         self._sparkline.on_tick();
         self._signals.on_tick();
-
-        let log = self._logs.items.pop().unwrap();
-        self._logs.items.insert(0, log);
-
-        let event = self._barchart.pop().unwrap();
-        self._barchart.insert(0, event);
     }
 
     pub fn get_current_team(&self) -> &str {

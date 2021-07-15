@@ -132,12 +132,17 @@ fn main() -> Result<(), Box<dyn Error>> {
             }
         }
     } else {
-        let boxscore = boxscore::BoxScore::new(&client, &date, games[0]).expect(&format!(
-            "Error occured fetching `http://data.nba.com/prod/v1/{}/{}_boxscore.json`",
-            date, games[0],
-        ));
+        let boxscore = boxscore::BoxScore::new(&client, &date, games[0]).unwrap_or_else(|_| {
+            panic!(
+                "Error occured fetching `http://data.nba.com/prod/v1/{}/{}_boxscore.json`",
+                date, games[0],
+            )
+        });
+        let pbp = pbp::PlayByPlay::new(&client, &date, games[0]).unwrap_or_else(|_| {
+            panic!("Error occured fetching `http://data.nba.com/data/10s/json/cms/noseason/game/{}/{}/pbp_all.json`",
+            date, games[0])});
 
-        let mut app = app::App::new("NBAScores", enhanced_graphics, boxscore);
+        let mut app = app::App::new("NBAScores", enhanced_graphics, boxscore, pbp);
 
         loop {
             terminal.draw(|f| ui::draw(f, &mut app))?;

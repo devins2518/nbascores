@@ -6,8 +6,8 @@ use tui::{
     symbols,
     text::{Span, Spans},
     widgets::{
-        Axis, BarChart, Block, Borders, Chart, Dataset, Gauge, LineGauge, List, ListItem,
-        Paragraph, Row, Sparkline, Table, Tabs, Wrap,
+        Axis, Block, Borders, Chart, Dataset, Gauge, LineGauge, List, ListItem, Paragraph, Row,
+        Sparkline, Table, Tabs, Wrap,
     },
     Frame,
 };
@@ -139,74 +139,27 @@ where
         .split(area);
     {
         let chunks = Layout::default()
-            .constraints([Constraint::Percentage(50), Constraint::Percentage(50)].as_ref())
+            .constraints([Constraint::Percentage(100)].as_ref())
             .split(chunks[0]);
-        {
-            let chunks = Layout::default()
-                .constraints([Constraint::Percentage(50), Constraint::Percentage(50)].as_ref())
-                .direction(Direction::Horizontal)
-                .split(chunks[0]);
 
-            // Draw tasks
-            let tasks: Vec<ListItem> = app
-                ._tasks
-                .items
-                .iter()
-                .map(|i| ListItem::new(vec![Spans::from(Span::raw(*i))]))
-                .collect();
-            let tasks = List::new(tasks)
-                .block(Block::default().borders(Borders::ALL).title("List"))
-                .highlight_style(Style::default().add_modifier(Modifier::BOLD))
-                .highlight_symbol("> ");
-            f.render_stateful_widget(tasks, chunks[0], &mut app._tasks.state);
-
-            // Draw logs
-            let info_style = Style::default().fg(Color::Blue);
-            let warning_style = Style::default().fg(Color::Yellow);
-            let error_style = Style::default().fg(Color::Magenta);
-            let critical_style = Style::default().fg(Color::Red);
-            let logs: Vec<ListItem> = app
-                ._logs
-                .items
-                .iter()
-                .map(|&(evt, level)| {
-                    let s = match level {
-                        "ERROR" => error_style,
-                        "CRITICAL" => critical_style,
-                        "WARNING" => warning_style,
-                        _ => info_style,
-                    };
-                    let content = vec![Spans::from(vec![
-                        Span::styled(format!("{:<9}", level), s),
-                        Span::raw(evt),
-                    ])];
-                    ListItem::new(content)
-                })
-                .collect();
-            let logs = List::new(logs).block(Block::default().borders(Borders::ALL).title("List"));
-            f.render_stateful_widget(logs, chunks[1], &mut app._logs.state);
-        }
-
-        let barchart = BarChart::default()
-            .block(Block::default().borders(Borders::ALL).title("Bar chart"))
-            .data(&app._barchart)
-            .bar_width(3)
-            .bar_gap(2)
-            .bar_set(if app.enhanced_graphics {
-                symbols::bar::NINE_LEVELS
-            } else {
-                symbols::bar::THREE_LEVELS
+        let plays: Vec<ListItem> = app
+            .plays
+            .items
+            .iter()
+            .map(|i| {
+                ListItem::new(vec![Spans::from(format!(
+                    "{} {} | {} - {} | {}",
+                    &i.period, i.clock, i.h_score, i.v_score, i.description
+                ))])
             })
-            .value_style(
-                Style::default()
-                    .fg(Color::Black)
-                    .bg(Color::Green)
-                    .add_modifier(Modifier::ITALIC),
-            )
-            .label_style(Style::default().fg(Color::Yellow))
-            .bar_style(Style::default().fg(Color::Green));
-        f.render_widget(barchart, chunks[1]);
+            .collect();
+        let plays = List::new(plays)
+            .block(Block::default().borders(Borders::ALL).title("Play by play"))
+            .highlight_style(Style::default().add_modifier(Modifier::BOLD))
+            .highlight_symbol("> ");
+        f.render_stateful_widget(plays, chunks[0], &mut app.plays.state);
     }
+
     if app._show_chart {
         let x_labels = vec![
             Span::styled(

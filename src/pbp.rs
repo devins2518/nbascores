@@ -1,8 +1,6 @@
-use std::fmt;
-
-use crate::utils::*;
 use serde::de::Deserialize;
 use serde_derive::Deserialize;
+use std::fmt;
 
 #[derive(Debug)]
 pub struct PlayByPlay<'lf> {
@@ -15,7 +13,7 @@ impl<'lf> PlayByPlay<'lf> {
         game_date: &str,
         game_id: &str,
     ) -> Result<Self, Box<dyn std::error::Error>> {
-        let boxscore = Box::leak::<'lf>(Box::new(
+        let json = Box::leak::<'lf>(Box::new(
             client
                 .get(format!(
                     "http://data.nba.com/data/10s/json/cms/noseason/game/{}/{}/pbp_all.json",
@@ -27,14 +25,14 @@ impl<'lf> PlayByPlay<'lf> {
         // let boxscore = Box::leak::<'lf>(Box::new(
         //     std::fs::read_to_string(
         //         std::path::PathBuf::from(format!("{}", std::env!("CARGO_MANIFEST_DIR")))
-        //             .join("src/playbyplay.json"),
+        //             .join("src/pbp.json"),
         //     )
         //     .unwrap(),
         // ));
 
-        let boxscore = serde_json::from_str::<PlayByPlay<'lf>>(boxscore)?;
+        let pbp = serde_json::from_str::<PlayByPlay<'lf>>(json)?;
 
-        Ok(boxscore)
+        Ok(pbp)
     }
 }
 
@@ -49,38 +47,83 @@ where
         #[derive(Deserialize)]
         #[serde(bound(deserialize = "'de: 'lf"))]
         struct Root<'lf> {
-            #[serde(rename(deserialize = "basicGameData"))]
-            bgd: BasicGameData<'lf>,
-            stats: Option<Stats<'lf>>,
+            sports_content: Content<'lf>,
         }
+        #[derive(Deserialize)]
+        #[serde(bound(deserialize = "'de: 'lf"))]
+        struct Content<'lf> {
+            game: Game<'lf>,
+        }
+        #[derive(Deserialize)]
+        #[serde(bound(deserialize = "'de: 'lf"))]
+        struct Game<'lf> {
+            play: Option<Vec<Play<'lf>>>,
+        }
+
         let helper = Root::deserialize(deserializer)?;
-        let players = if let Some(x) = helper.stats {
-            x.active_players
+        let plays = if let Some(x) = helper.sports_content.game.play {
+            x
         } else {
-            [
-                Player::from_team_id(helper.bgd.h_team.team_id),
-                Player::from_team_id(helper.bgd.v_team.team_id),
-            ]
-            .concat()
+            Vec::new()
+        };
+
+        Ok(Self { plays })
+    }
+}
+
+#[derive(Debug)]
+pub struct Play<'lf> {
+    pub clock: &'lf str,
+    pub description: &'lf str,
+    pub h_score: u8,
+    pub v_score: u8,
+    pub period: Period,
+}
+
+impl<'lf, 'de> Deserialize<'de> for Play<'lf>
+where
+    'de: 'lf,
+{
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        #[derive(Deserialize)]
+        #[serde(bound(deserialize = "'de: 'lf"))]
+        struct Root<'lf> {
+            clock: &'lf str,
+            description: &'lf str,
+            home_score: &'lf str,
+            visitor_score: &'lf str,
+            period: &'lf str,
+        }
+
+        let helper = Root::deserialize(deserializer)?;
+
+        let clock = if helper.clock.is_empty() {
+            "12:00"
+        } else {
+            helper.clock
         };
 
         Ok(Self {
-            players,
-            v_team: helper.bgd.v_team,
-            h_team: helper.bgd.h_team,
+            clock,
+            description: helper.description,
+            h_score: helper.home_score.parse().unwrap_or(0),
+            v_score: helper.visitor_score.parse().unwrap_or(0),
+            period: match helper.period {
+                "1" => Period::Q1,
+                "2" => Period::Q2,
+                "3" => Period::Q3,
+                "4" => Period::Q4,
+                _ => Period::OT,
+            },
         })
     }
 }
 
-struct Play<'lf> {
-    clock: &'lf str,
-    description: &'lf str,
-    h_score: u8,
-    v_score: u8,
-    period: Period,
-}
-
-enum Period {
+#[derive(Debug)]
+pub enum Period {
     Q1,
     Q2,
     Q3,

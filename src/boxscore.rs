@@ -53,6 +53,34 @@ where
             bgd: BasicGameData<'lf>,
             stats: Option<Stats<'lf>>,
         }
+
+        #[derive(Deserialize, Debug)]
+        #[serde(rename_all = "camelCase")]
+        #[serde(bound(deserialize = "'de: 'lf"))]
+        pub struct BasicGameData<'lf> {
+            clock: &'lf str,
+            playoffs: Option<Playoffs<'lf>>,
+            period: Period,
+            pub v_team: Team<'lf>,
+            pub h_team: Team<'lf>,
+        }
+        #[derive(Deserialize, Debug)]
+        #[serde(rename_all = "camelCase")]
+        #[serde(bound(deserialize = "'de: 'lf"))]
+        pub struct Stats<'lf> {
+            times_tied: &'lf str,
+            lead_changes: &'lf str,
+            v_team: StatTeam<'lf>,
+            h_team: StatTeam<'lf>,
+            pub active_players: Vec<Player<'lf>>,
+        }
+        #[derive(Deserialize, Debug)]
+        #[serde(rename_all = "camelCase")]
+        #[serde(bound(deserialize = "'de: 'lf"))]
+        struct StatTeam<'lf> {
+            longest_run: &'lf str,
+        }
+
         let helper = Root::deserialize(deserializer)?;
         let players = if let Some(x) = helper.stats {
             x.active_players
@@ -70,70 +98,6 @@ where
             h_team: helper.bgd.h_team,
         })
     }
-}
-
-#[derive(Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
-#[serde(bound(deserialize = "'de: 'lf"))]
-pub struct BasicGameData<'lf> {
-    season_stage_id: usize,
-    season_year: &'lf str,
-    league_name: &'lf str,
-    game_id: &'lf str,
-    //arena:
-    pub is_game_activated: bool,
-    status_num: usize,
-    extended_status_num: usize,
-    pub start_time_eastern: &'lf str,
-    #[serde(rename(deserialize = "startTimeUTC"))]
-    start_time_utc: &'lf str,
-    #[serde(rename(deserialize = "endTimeUTC"))]
-    end_time_utc: Option<&'lf str>,
-    pub start_date_eastern: &'lf str,
-    home_start_date: &'lf str,
-    home_start_time: &'lf str,
-    visitor_start_date: &'lf str,
-    visitor_start_time: &'lf str,
-    game_url_code: &'lf str,
-    clock: &'lf str,
-    is_buzzer_beater: bool,
-    is_preview_article_avail: bool,
-    is_recap_article_avail: bool,
-    attendance: &'lf str,
-    has_game_book_pdf: bool,
-    #[serde(rename(deserialize = "isStartTimeTBD"))]
-    is_start_time_tbd: bool,
-    is_neutral_venue: bool,
-    playoffs: Option<Playoffs<'lf>>,
-    period: Period,
-    pub v_team: Team<'lf>,
-    pub h_team: Team<'lf>,
-}
-
-#[derive(Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
-#[serde(bound(deserialize = "'de: 'lf"))]
-pub struct PreviousMatchup<'lf> {
-    game_id: &'lf str,
-    game_date: &'lf str,
-}
-
-#[derive(Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
-#[serde(bound(deserialize = "'de: 'lf"))]
-struct Name<'lf> {
-    first_name_last_name: &'lf str,
-}
-
-#[derive(Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
-#[serde(bound(deserialize = "'de: 'lf"))]
-pub struct Stats<'lf> {
-    times_tied: &'lf str,
-    lead_changes: &'lf str,
-    v_team: Team<'lf>,
-    h_team: Team<'lf>,
-    pub active_players: Vec<Player<'lf>>,
 }
 
 #[derive(Debug)]
@@ -218,7 +182,12 @@ where
             win: &'lf str,
             loss: &'lf str,
             score: &'lf str,
-            linescore: Vec<u8>,
+            linescore: Vec<LineScore<'lf>>,
+        }
+
+        #[derive(Deserialize, Default, Clone, Copy)]
+        struct LineScore<'lf> {
+            score: &'lf str,
         }
 
         let helper = Root::deserialize(deserializer)?;
@@ -230,10 +199,34 @@ where
             loss: helper.loss.parse().unwrap_or(0),
             score: helper.score.parse().unwrap_or(0),
             linescore: [
-                *helper.linescore.get(0).unwrap_or(&0),
-                *helper.linescore.get(1).unwrap_or(&0),
-                *helper.linescore.get(2).unwrap_or(&0),
-                *helper.linescore.get(3).unwrap_or(&0),
+                helper
+                    .linescore
+                    .get(0)
+                    .unwrap_or(&LineScore { score: "0" })
+                    .score
+                    .parse()
+                    .unwrap(),
+                helper
+                    .linescore
+                    .get(1)
+                    .unwrap_or(&LineScore { score: "0" })
+                    .score
+                    .parse()
+                    .unwrap(),
+                helper
+                    .linescore
+                    .get(2)
+                    .unwrap_or(&LineScore { score: "0" })
+                    .score
+                    .parse()
+                    .unwrap(),
+                helper
+                    .linescore
+                    .get(3)
+                    .unwrap_or(&LineScore { score: "0" })
+                    .score
+                    .parse()
+                    .unwrap(),
             ],
         })
     }
