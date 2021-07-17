@@ -179,59 +179,6 @@ pub struct SortKey {
     plus_minus: usize,
 }
 
-#[derive(Deserialize, Debug, Clone)]
-#[serde(rename_all = "camelCase")]
-#[serde(bound(deserialize = "'de: 'lf"))]
-pub struct Score<'lf> {
-    pub score: &'lf str,
-}
-
-#[derive(Clone)]
-pub struct RandomSignal {
-    value: u64,
-}
-
-impl RandomSignal {
-    pub fn new() -> RandomSignal {
-        RandomSignal { value: 50 }
-    }
-}
-
-impl Iterator for RandomSignal {
-    type Item = u64;
-    fn next(&mut self) -> Option<u64> {
-        Some(50)
-    }
-}
-
-#[derive(Clone)]
-pub struct SinSignal {
-    x: f64,
-    interval: f64,
-    period: f64,
-    scale: f64,
-}
-
-impl SinSignal {
-    pub fn new(interval: f64, period: f64, scale: f64) -> SinSignal {
-        SinSignal {
-            x: 0.0,
-            interval,
-            period,
-            scale,
-        }
-    }
-}
-
-impl Iterator for SinSignal {
-    type Item = (f64, f64);
-    fn next(&mut self) -> Option<Self::Item> {
-        let point = (self.x, (self.x * 1.0 / self.period).sin() * self.scale);
-        self.x += self.interval;
-        Some(point)
-    }
-}
-
 pub const TAB_NUM: usize = 2;
 
 #[derive(Clone, Copy)]

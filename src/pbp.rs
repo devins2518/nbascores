@@ -22,7 +22,7 @@ impl<'lf> PlayByPlay<'lf> {
                 .send()?
                 .text()?,
         ));
-        // let boxscore = Box::leak::<'lf>(Box::new(
+        // let json = Box::leak::<'lf>(Box::new(
         //     std::fs::read_to_string(
         //         std::path::PathBuf::from(format!("{}", std::env!("CARGO_MANIFEST_DIR")))
         //             .join("src/pbp.json"),

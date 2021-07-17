@@ -3,12 +3,8 @@ use tui::{
     backend::Backend,
     layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
-    symbols,
     text::{Span, Spans},
-    widgets::{
-        Axis, Block, Borders, Chart, Dataset, Gauge, LineGauge, List, ListItem, Paragraph, Row,
-        Sparkline, Table, Tabs, Wrap,
-    },
+    widgets::{Block, Borders, List, ListItem, Paragraph, Row, Table, Tabs, Wrap},
     Frame,
 };
 
@@ -87,52 +83,13 @@ where
         .split(area);
     let block = Block::default().borders(Borders::ALL).title("Graphs");
     f.render_widget(block, area);
-
-    let label = format!("{:.2}%", app._progress * 100.0);
-    let gauge = Gauge::default()
-        .block(Block::default().title("Gauge:"))
-        .gauge_style(
-            Style::default()
-                .fg(Color::Magenta)
-                .bg(Color::Black)
-                .add_modifier(Modifier::ITALIC | Modifier::BOLD),
-        )
-        .label(label)
-        .ratio(app._progress);
-    f.render_widget(gauge, chunks[0]);
-
-    let sparkline = Sparkline::default()
-        .block(Block::default().title("Sparkline:"))
-        .style(Style::default().fg(Color::Green))
-        .data(&app._sparkline.points)
-        .bar_set(if app.enhanced_graphics {
-            symbols::bar::NINE_LEVELS
-        } else {
-            symbols::bar::THREE_LEVELS
-        });
-    f.render_widget(sparkline, chunks[1]);
-
-    let line_gauge = LineGauge::default()
-        .block(Block::default().title("LineGauge:"))
-        .gauge_style(Style::default().fg(Color::Magenta))
-        .line_set(if app.enhanced_graphics {
-            symbols::line::THICK
-        } else {
-            symbols::line::NORMAL
-        })
-        .ratio(app._progress);
-    f.render_widget(line_gauge, chunks[2]);
 }
 
 fn draw_charts<B>(f: &mut Frame<B>, app: &mut App, area: Rect)
 where
     B: Backend,
 {
-    let constraints = if app._show_chart {
-        vec![Constraint::Percentage(50), Constraint::Percentage(50)]
-    } else {
-        vec![Constraint::Percentage(100)]
-    };
+    let constraints = vec![Constraint::Percentage(100)];
     let chunks = Layout::default()
         .constraints(constraints)
         .direction(Direction::Horizontal)
@@ -158,69 +115,6 @@ where
             .highlight_style(Style::default().add_modifier(Modifier::BOLD))
             .highlight_symbol("> ");
         f.render_stateful_widget(plays, chunks[0], &mut app.plays.state);
-    }
-
-    if app._show_chart {
-        let x_labels = vec![
-            Span::styled(
-                format!("{}", app._signals.window[0]),
-                Style::default().add_modifier(Modifier::BOLD),
-            ),
-            Span::raw(format!(
-                "{}",
-                (app._signals.window[0] + app._signals.window[1]) / 2.0
-            )),
-            Span::styled(
-                format!("{}", app._signals.window[1]),
-                Style::default().add_modifier(Modifier::BOLD),
-            ),
-        ];
-        let datasets = vec![
-            Dataset::default()
-                .name("data2")
-                .marker(symbols::Marker::Dot)
-                .style(Style::default().fg(Color::Cyan))
-                .data(&app._signals.sin1.points),
-            Dataset::default()
-                .name("data3")
-                .marker(if app.enhanced_graphics {
-                    symbols::Marker::Braille
-                } else {
-                    symbols::Marker::Dot
-                })
-                .style(Style::default().fg(Color::Yellow))
-                .data(&app._signals.sin2.points),
-        ];
-        let chart = Chart::new(datasets)
-            .block(
-                Block::default()
-                    .title(Span::styled(
-                        "Chart",
-                        Style::default()
-                            .fg(Color::Cyan)
-                            .add_modifier(Modifier::BOLD),
-                    ))
-                    .borders(Borders::ALL),
-            )
-            .x_axis(
-                Axis::default()
-                    .title("X Axis")
-                    .style(Style::default().fg(Color::Gray))
-                    .bounds(app._signals.window)
-                    .labels(x_labels),
-            )
-            .y_axis(
-                Axis::default()
-                    .title("Y Axis")
-                    .style(Style::default().fg(Color::Gray))
-                    .bounds([-20.0, 20.0])
-                    .labels(vec![
-                        Span::styled("-20", Style::default().add_modifier(Modifier::BOLD)),
-                        Span::raw("0"),
-                        Span::styled("20", Style::default().add_modifier(Modifier::BOLD)),
-                    ]),
-            );
-        f.render_widget(chart, chunks[1]);
     }
 }
 
