@@ -1,5 +1,5 @@
-with import <nixpkgs> {};
+with import <nixpkgs> { };
 stdenv.mkDerivation {
-    name = "nbascores-dev";
-    buildInputs = [ pkg-config openssl ];
+  name = "nil-dev";
+  buildInputs = [ pkg-config openssl ];
 }
