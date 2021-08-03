@@ -1,6 +1,7 @@
 use crate::boxscore::BoxScore;
 use crate::pbp::{Play, PlayByPlay};
 use crate::utils::{StatefulList, TabTeam, TabsState};
+use reqwest::blocking::Client;
 
 pub struct App<'a> {
     pub title: &'a str,
@@ -8,6 +9,7 @@ pub struct App<'a> {
     pub boxscore: BoxScore<'a>,
     pub enhanced_graphics: bool,
     pub plays: StatefulList<Play<'a>>,
+    client: Client,
 }
 
 impl<'a> App<'a> {
@@ -16,6 +18,7 @@ impl<'a> App<'a> {
         enhanced_graphics: bool,
         boxscore: BoxScore<'a>,
         playbyplay: PlayByPlay<'a>,
+        client: Client,
     ) -> App<'a> {
         App {
             title,
@@ -23,6 +26,7 @@ impl<'a> App<'a> {
             boxscore,
             enhanced_graphics,
             plays: StatefulList::with_items(playbyplay.plays),
+            client,
         }
     }
 

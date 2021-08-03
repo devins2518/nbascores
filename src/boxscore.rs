@@ -1,4 +1,5 @@
 use crate::utils::*;
+use reqwest::blocking::Client;
 use serde::de::Deserialize;
 use serde_derive::Deserialize;
 
@@ -35,6 +36,10 @@ impl<'lf> BoxScore<'lf> {
         let boxscore = serde_json::from_str::<BoxScore<'lf>>(boxscore)?;
 
         Ok(boxscore)
+    }
+
+    pub fn update(&mut self, client: &Client, date: &str, id: &str) {
+        *self = Self::new(client, date, id).unwrap();
     }
 }
 

@@ -142,7 +142,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             panic!("Error occured fetching `http://data.nba.com/data/10s/json/cms/noseason/game/{}/{}/pbp_all.json`",
             date, games[0])});
 
-        let mut app = app::App::new("NBAScores", enhanced_graphics, boxscore, pbp);
+        let mut app = app::App::new("NBAScores", enhanced_graphics, boxscore, pbp, client);
 
         loop {
             terminal.draw(|f| ui::draw(f, &mut app))?;
