@@ -1,5 +1,7 @@
 with import <nixpkgs> { };
-stdenv.mkDerivation {
+let frameworks = pkgs.darwin.apple_sdk.frameworks;
+in stdenv.mkDerivation {
   name = "nil-dev";
-  buildInputs = [ pkg-config openssl ];
+  buildInputs = [ pkg-config libiconv ]
+    ++ lib.optionals stdenv.isDarwin [ frameworks.Security ];
 }
